@@ -1,40 +1,6 @@
 import React, { useState, useEffect } from "react";
-
-// Initial Demo Data
-const initialRequests = [
-  {
-    id: 1,
-    name: "Kasun Perera",
-    area: "Kegalle",
-    requestType: "New Waste Bin",
-    priority: "High",
-    status: "Pending",
-    description: "Requesting a public bin near the central bus stand.",
-    createdAt: "2026-09-01"
-  },
-  {
-    id: 2,
-    name: "Nimali Silva",
-    area: "Colombo",
-    requestType: "Extra Collection",
-    priority: "Medium",
-    status: "Approved",
-    description: "Need an additional recycling pickup on weekend.",
-    createdAt: "2026-09-02"
-  },
-  {
-    id: 3,
-    name: "Sunil Shantha",
-    area: "Galle",
-    requestType: "Cleanup Request",
-    priority: "Low",
-    status: "Completed",
-    description: "Beach side cleanup drive support needed.",
-    createdAt: "2026-09-03"
-  }
-];
-
-const STORAGE_KEY = "cleanlk_community_requests";
+import { initialRequests } from "../../data/communityRequests";
+import { getStoredRequests, saveRequests } from "../../utils/storage";
 
 export default function CommunityRequests() {
   const [requests, setRequests] = useState([]);
@@ -48,27 +14,17 @@ export default function CommunityRequests() {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [priorityFilter, setPriorityFilter] = useState("All");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Load Initial Data from LocalStorage
   useEffect(() => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialRequests));
-      setRequests(initialRequests);
-    } else {
-      try {
-        setRequests(JSON.parse(data));
-      } catch {
-        setRequests(initialRequests);
-      }
-    }
+    setRequests(getStoredRequests(initialRequests));
   }, []);
 
   const updateStateAndStorage = (updatedList) => {
     setRequests(updatedList);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    saveRequests(updatedList);
   };
 
   const handleInputChange = (e) => {
@@ -80,7 +36,7 @@ export default function CommunityRequests() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      setError("⚠️ Please enter your name.");
+      setError("⚠️ Please enter your full name.");
       return;
     }
     if (formData.description.trim().length < 10) {
@@ -93,7 +49,7 @@ export default function CommunityRequests() {
         item.id === editingId ? { ...item, ...formData } : item
       );
       updateStateAndStorage(updated);
-      setSuccess("✅ Request updated successfully!");
+      setSuccess("✅ Community request updated successfully!");
       setEditingId(null);
     } else {
       const newEntry = {
@@ -103,7 +59,7 @@ export default function CommunityRequests() {
         createdAt: new Date().toISOString().split("T")[0]
       };
       updateStateAndStorage([newEntry, ...requests]);
-      setSuccess("✅ Request submitted successfully!");
+      setSuccess("✅ Community request submitted successfully!");
     }
 
     setFormData({
@@ -118,7 +74,7 @@ export default function CommunityRequests() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this request?")) {
+    if (window.confirm("Are you sure you want to delete this community request?")) {
       const updated = requests.filter((item) => item.id !== id);
       updateStateAndStorage(updated);
     }
@@ -143,27 +99,61 @@ export default function CommunityRequests() {
     updateStateAndStorage(updated);
   };
 
+  const stats = {
+    total: requests.length,
+    pending: requests.filter((r) => r.status === "Pending").length,
+    inReview: requests.filter((r) => r.status === "Under Review").length,
+    approved: requests.filter((r) => r.status === "Approved").length,
+    completed: requests.filter((r) => r.status === "Completed").length
+  };
+
   const filteredRequests = requests.filter((item) => {
     const matchesArea = item.area.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-    return matchesArea && matchesStatus;
+    const matchesPriority = priorityFilter === "All" || item.priority === priorityFilter;
+    return matchesArea && matchesStatus && matchesPriority;
   });
 
   return (
-    <div style={{ maxWidth: "860px", margin: "20px auto", padding: "16px", fontFamily: "system-ui, sans-serif" }}>
-      <header style={{ marginBottom: "24px", borderBottom: "2px solid #e5e7eb", paddingBottom: "12px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#1f2937", margin: 0 }}>
-          📋 Community Requests & Complaints
+    <div style={{ maxWidth: "900px", margin: "20px auto", padding: "16px", fontFamily: "system-ui, sans-serif" }}>
+      {/* HEADER */}
+      <header style={{ marginBottom: "20px", borderBottom: "2px solid #e5e7eb", paddingBottom: "12px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: 0 }}>
+          📋 Community Requests & Services (M4)
         </h1>
-        <p style={{ color: "#6b7280", margin: "6px 0 0 0", fontSize: "14px" }}>
-          Module M4: Request bins, cleanup drives, or report community needs.
+        <p style={{ color: "#4b5563", marginTop: "6px", fontSize: "14px" }}>
+          Request bins, extra collections, or cleanup drives across Sri Lankan municipal areas.
         </p>
       </header>
 
-      {/* FORM */}
-      <section style={{ background: "#ffffff", border: "1px solid #d1d5db", borderRadius: "8px", padding: "20px", marginBottom: "30px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+      {/* DASHBOARD STATS */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", marginBottom: "24px" }}>
+        <div style={{ background: "#f3f4f6", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #e5e7eb" }}>
+          <div style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600" }}>Total Requests</div>
+          <div style={{ fontSize: "22px", fontWeight: "700", color: "#111827" }}>{stats.total}</div>
+        </div>
+        <div style={{ background: "#fef3c7", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #fde68a" }}>
+          <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "600" }}>Pending</div>
+          <div style={{ fontSize: "22px", fontWeight: "700", color: "#b45309" }}>{stats.pending}</div>
+        </div>
+        <div style={{ background: "#e0e7ff", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #c7d2fe" }}>
+          <div style={{ fontSize: "12px", color: "#3730a3", fontWeight: "600" }}>Under Review</div>
+          <div style={{ fontSize: "22px", fontWeight: "700", color: "#4338ca" }}>{stats.inReview}</div>
+        </div>
+        <div style={{ background: "#dbeafe", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #bfdbfe" }}>
+          <div style={{ fontSize: "12px", color: "#1e40af", fontWeight: "600" }}>Approved</div>
+          <div style={{ fontSize: "22px", fontWeight: "700", color: "#1d4ed8" }}>{stats.approved}</div>
+        </div>
+        <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #bbf7d0" }}>
+          <div style={{ fontSize: "12px", color: "#166534", fontWeight: "600" }}>Completed</div>
+          <div style={{ fontSize: "22px", fontWeight: "700", color: "#15803d" }}>{stats.completed}</div>
+        </div>
+      </section>
+
+      {/* CREATE & EDIT FORM */}
+      <section style={{ background: "#ffffff", border: "1px solid #d1d5db", borderRadius: "8px", padding: "20px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
         <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#065f46", marginTop: 0 }}>
-          {editingId ? "✏️ Edit Community Request" : "➕ Submit a Community Request"}
+          {editingId ? "✏️ Edit Request" : "➕ Submit New Community Request"}
         </h2>
 
         {error && <div style={{ background: "#fee2e2", color: "#991b1b", padding: "10px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px" }}>{error}</div>}
@@ -178,11 +168,10 @@ export default function CommunityRequests() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="e.g. Kasun"
+                placeholder="e.g. Dinelka Perera"
                 style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
               />
             </div>
-
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Area *</label>
               <select
@@ -216,7 +205,6 @@ export default function CommunityRequests() {
                 <option>Missing Collection Point</option>
               </select>
             </div>
-
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Priority *</label>
               <select
@@ -239,7 +227,7 @@ export default function CommunityRequests() {
               rows="3"
               value={formData.description}
               onChange={handleInputChange}
-              placeholder="Describe what is needed (at least 10 characters)..."
+              placeholder="Detail your request (minimum 10 characters)..."
               style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
             />
           </div>
@@ -247,7 +235,7 @@ export default function CommunityRequests() {
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               type="submit"
-              style={{ background: "#059669", color: "#fff", border: "none", padding: "9px 18px", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}
+              style={{ background: "#059669", color: "#fff", border: "none", padding: "8px 18px", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}
             >
               {editingId ? "Update Request" : "Submit Request"}
             </button>
@@ -258,7 +246,7 @@ export default function CommunityRequests() {
                   setEditingId(null);
                   setFormData({ name: "", area: "Colombo", requestType: "New Waste Bin", priority: "Medium", description: "" });
                 }}
-                style={{ background: "#6b7280", color: "#fff", border: "none", padding: "9px 14px", borderRadius: "5px", cursor: "pointer" }}
+                style={{ background: "#6b7280", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "5px", cursor: "pointer" }}
               >
                 Cancel
               </button>
@@ -269,18 +257,18 @@ export default function CommunityRequests() {
 
       {/* SEARCH, FILTER & LIST */}
       <section>
-        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
           <input
             type="text"
             placeholder="🔎 Search by area..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: 2, padding: "8px 12px", border: "1px solid #ccc", borderRadius: "5px" }}
+            style={{ padding: "8px 12px", border: "1px solid #ccc", borderRadius: "5px" }}
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ flex: 1, padding: "8px", border: "1px solid #ccc", borderRadius: "5px" }}
+            style={{ padding: "8px", border: "1px solid #ccc", borderRadius: "5px" }}
           >
             <option value="All">All Statuses</option>
             <option value="Pending">Pending</option>
@@ -288,11 +276,23 @@ export default function CommunityRequests() {
             <option value="Approved">Approved</option>
             <option value="Completed">Completed</option>
           </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            style={{ padding: "8px", border: "1px solid #ccc", borderRadius: "5px" }}
+          >
+            <option value="All">All Priorities</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
         </div>
 
         <div style={{ display: "grid", gap: "12px" }}>
           {filteredRequests.length === 0 ? (
-            <p style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}>No requests found matching your filter.</p>
+            <p style={{ color: "#6b7280", textAlign: "center", padding: "20px", background: "#f9fafb", borderRadius: "6px" }}>
+              No community requests found matching criteria.
+            </p>
           ) : (
             filteredRequests.map((item) => (
               <div

@@ -9,6 +9,7 @@ export const getStoredRequests = (fallbackData) => {
   try {
     return JSON.parse(data);
   } catch (err) {
+    console.error("Failed to parse storage data", err);
     return fallbackData;
   }
 };
