@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { initialRequests } from "../../data/communityRequests";
 import { getStoredRequests, saveRequests } from "../../utils/storage";
+import { validateCommunityRequest } from "../../utils/validation";
+import CommunityRequestForm from "./CommunityRequestForm";
+import CommunityRequestDetails from "./CommunityRequestDetails";
+import CollectionScheduleLookup from "../collection-schedules/CollectionScheduleLookup";
 
 export default function CommunityRequests() {
   const [requests, setRequests] = useState([]);
@@ -12,6 +16,7 @@ export default function CommunityRequests() {
     description: ""
   });
   const [editingId, setEditingId] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -35,12 +40,9 @@ export default function CommunityRequests() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      setError("⚠️ Please enter your full name.");
-      return;
-    }
-    if (formData.description.trim().length < 10) {
-      setError("⚠️ Description must be at least 10 characters long.");
+    const validation = validateCommunityRequest(formData);
+    if (!validation.isValid) {
+      setError(validation.errors.name || validation.errors.description);
       return;
     }
 
@@ -74,7 +76,7 @@ export default function CommunityRequests() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this community request?")) {
+    if (window.confirm("Are you sure you want to delete this request?")) {
       const updated = requests.filter((item) => item.id !== id);
       updateStateAndStorage(updated);
     }
@@ -116,13 +118,20 @@ export default function CommunityRequests() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "20px auto", padding: "16px", fontFamily: "system-ui, sans-serif" }}>
-      {/* HEADER */}
+      {/* IN-APP PROBLEM & SOLUTION STATEMENT (Assignment Rubric Requirement 2) */}
+      <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
+        <h3 style={{ margin: 0, color: "#065f46", fontSize: "16px", fontWeight: "bold" }}>🇱🇰 Solving Sri Lanka's Municipal Waste Crisis</h3>
+        <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#047857", lineHeight: "1.4" }}>
+          In many Sri Lankan councils, irregular garbage truck collection and severe public bin shortages lead to illegal roadside dumping. <strong>CleanLK Community Services (M4)</strong> bridges the citizen-authority gap by enabling direct requests for new bins, extra collections, and real-time municipal tracking.
+        </p>
+      </div>
+
       <header style={{ marginBottom: "20px", borderBottom: "2px solid #e5e7eb", paddingBottom: "12px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: 0 }}>
           📋 Community Requests & Services (M4)
         </h1>
         <p style={{ color: "#4b5563", marginTop: "6px", fontSize: "14px" }}>
-          Request bins, extra collections, or cleanup drives across Sri Lankan municipal areas.
+          Citizen service requests, municipal tracking, and public waste schedules.
         </p>
       </header>
 
@@ -150,117 +159,29 @@ export default function CommunityRequests() {
         </div>
       </section>
 
-      {/* CREATE & EDIT FORM */}
-      <section style={{ background: "#ffffff", border: "1px solid #d1d5db", borderRadius: "8px", padding: "20px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#065f46", marginTop: 0 }}>
-          {editingId ? "✏️ Edit Request" : "➕ Submit New Community Request"}
-        </h2>
+      {/* SCHEDULE LOOKUP */}
+      <CollectionScheduleLookup />
 
-        {error && <div style={{ background: "#fee2e2", color: "#991b1b", padding: "10px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px" }}>{error}</div>}
-        {success && <div style={{ background: "#d1fae5", color: "#065f46", padding: "10px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px" }}>{success}</div>}
+      {/* MODULAR FORM COMPONENT */}
+      <CommunityRequestForm
+        formData={formData}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleSubmit}
+        editingId={editingId}
+        onCancel={() => {
+          setEditingId(null);
+          setFormData({ name: "", area: "Colombo", requestType: "New Waste Bin", priority: "Medium", description: "" });
+        }}
+        error={error}
+        success={success}
+      />
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "14px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Full Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="e.g. Dinelka Perera"
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Area *</label>
-              <select
-                name="area"
-                value={formData.area}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-              >
-                <option>Colombo</option>
-                <option>Kandy</option>
-                <option>Kegalle</option>
-                <option>Gampaha</option>
-                <option>Galle</option>
-                <option>Kurunegala</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Request Type *</label>
-              <select
-                name="requestType"
-                value={formData.requestType}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-              >
-                <option>New Waste Bin</option>
-                <option>Extra Collection</option>
-                <option>Cleanup Request</option>
-                <option>Missing Collection Point</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Priority *</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-              >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Description *</label>
-            <textarea
-              name="description"
-              rows="3"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Detail your request (minimum 10 characters)..."
-              style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              type="submit"
-              style={{ background: "#059669", color: "#fff", border: "none", padding: "8px 18px", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}
-            >
-              {editingId ? "Update Request" : "Submit Request"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({ name: "", area: "Colombo", requestType: "New Waste Bin", priority: "Medium", description: "" });
-                }}
-                style={{ background: "#6b7280", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "5px", cursor: "pointer" }}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
-
-      {/* SEARCH, FILTER & LIST */}
+      {/* FILTER & LIST */}
       <section>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
           <input
             type="text"
-            placeholder="🔎 Search by area..."
+            placeholder="🔎 Search by area (e.g. Kegalle)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ padding: "8px 12px", border: "1px solid #ccc", borderRadius: "5px" }}
@@ -291,7 +212,7 @@ export default function CommunityRequests() {
         <div style={{ display: "grid", gap: "12px" }}>
           {filteredRequests.length === 0 ? (
             <p style={{ color: "#6b7280", textAlign: "center", padding: "20px", background: "#f9fafb", borderRadius: "6px" }}>
-              No community requests found matching criteria.
+              No requests found matching criteria.
             </p>
           ) : (
             filteredRequests.map((item) => (
@@ -330,6 +251,12 @@ export default function CommunityRequests() {
 
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
+                      onClick={() => setSelectedRequest(item)}
+                      style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      View
+                    </button>
+                    <button
                       onClick={() => handleEdit(item)}
                       style={{ background: "#f59e0b", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
                     >
@@ -348,6 +275,12 @@ export default function CommunityRequests() {
           )}
         </div>
       </section>
+
+      {/* MODULAR DETAILS MODAL */}
+      <CommunityRequestDetails
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+      />
     </div>
   );
 }
