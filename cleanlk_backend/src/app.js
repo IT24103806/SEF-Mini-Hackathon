@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import reportRoutes from './routes/reportRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
+import communityRequestRoutes from './routes/communityRequestRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
@@ -29,6 +31,8 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/reports', reportRoutes);
 app.use('/api/schedules', scheduleRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/community-requests', communityRequestRoutes);
 app.use('/api/ai', aiRoutes);
 
 // 404 Handler
