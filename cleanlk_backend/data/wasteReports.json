@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Nimal Perera",
+    "area": "Colombo",
+    "issueType": "Uncollected Garbage",
+    "description": "Garbage has not been collected for three days near the housing area.",
+    "severity": "Medium",
+    "status": "Reported",
+    "date": "2026-09-04"
+  },
+  {
+    "id": 2,
+    "name": "Kamal Silva",
+    "area": "Kandy",
+    "issueType": "Overflowing Bin",
+    "description": "The public waste bin near the bus stand is overflowing.",
+    "severity": "Low",
+    "status": "In Progress",
+    "date": "2026-09-03"
+  },
+  {
+    "id": 3,
+    "name": "Saman Kumara",
+    "area": "Kegalle",
+    "issueType": "Illegal Dumping",
+    "description": "A large amount of household waste was dumped beside the main road.",
+    "severity": "High",
+    "status": "Reported",
+    "date": "2026-09-02"
+  }
+]

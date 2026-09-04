@@ -13,9 +13,7 @@ import {
   SproutIcon,
   UsersIcon,
 } from "../components/icons";
-import { loadFromStorage } from "../utils/storage";
-import sampleReports from "../data/wasteReports";
-import { STORAGE_KEY } from "./waste-reports/constants";
+import { getWasteReports } from "../api/wasteReports";
 
 const features = [
   {
@@ -59,18 +57,20 @@ const steps = [
 ];
 
 export default function Home() {
-  // Real counts pulled from localStorage (falls back to sample data),
-  // instead of the static placeholder numbers in the design reference.
   const [counts, setCounts] = useState({ total: 0, inProgress: 0, resolved: 0 });
 
   useEffect(() => {
-    const stored = loadFromStorage(STORAGE_KEY, null);
-    const reports = stored && stored.length > 0 ? stored : sampleReports;
-    setCounts({
-      total: reports.length,
-      inProgress: reports.filter((r) => r.status === "In Progress").length,
-      resolved: reports.filter((r) => r.status === "Resolved").length,
-    });
+    getWasteReports()
+      .then((reports) => {
+        setCounts({
+          total: reports.length,
+          inProgress: reports.filter((r) => r.status === "In Progress").length,
+          resolved: reports.filter((r) => r.status === "Resolved").length,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to load report counts", error);
+      });
   }, []);
 
   const overview = [

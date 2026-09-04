@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeftIcon, MapPinIcon, PencilIcon } from "../../components/icons";
-import { StatusBadge, SeverityBadge } from "./Badges";
+import { PriorityBadge, StatusBadge, SeverityBadge } from "./Badges";
 import FlashBanner from "./FlashBanner";
-import { loadFromStorage } from "../../utils/storage";
-import { STORAGE_KEY } from "./constants";
+import { getWasteReport } from "../../api/wasteReports";
 import { formatReportDate } from "../../utils/format";
 
 export default function WasteReportDetails() {
@@ -15,12 +14,13 @@ export default function WasteReportDetails() {
   const [report, setReport] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [flash, setFlash] = useState(location.state?.flash ?? null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const reports = loadFromStorage(STORAGE_KEY, []);
-    const found = reports.find((r) => r.id === id);
-    setReport(found || null);
-    setLoaded(true);
+    getWasteReport(id)
+      .then(setReport)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoaded(true));
   }, [id]);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function WasteReportDetails() {
       <main className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-8">
         <h1 className="text-2xl font-bold text-ink">Report not found</h1>
         <p className="mt-2 text-sm text-ink-muted">
-          This waste report may have been deleted.
+          {error || "This waste report may have been deleted."}
         </p>
         <button
           type="button"
@@ -90,6 +90,7 @@ export default function WasteReportDetails() {
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={report.status} />
             <SeverityBadge severity={report.severity} />
+            <PriorityBadge priority={report.priority} />
           </div>
         </div>
 

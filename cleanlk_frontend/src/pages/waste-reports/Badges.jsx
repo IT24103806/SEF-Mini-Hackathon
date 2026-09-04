@@ -19,6 +19,13 @@ const severityStyles = {
   Low: "bg-fresh-50 text-fresh-600 ring-fresh-100",
 };
 
+const priorityStyles = {
+  URGENT: "bg-clay-500 text-white ring-clay-500",
+  HIGH: "bg-amber-50 text-amber-700 ring-amber-200",
+  NORMAL: "bg-brand-50 text-brand-700 ring-brand-100",
+  RESOLVED: "bg-fresh-50 text-fresh-700 ring-fresh-100",
+};
+
 const base =
   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset";
 
@@ -38,6 +45,14 @@ export function SeverityBadge({ severity }) {
   return (
     <span className={`${base} ${severityStyles[severity] ?? ""}`}>
       {severity} severity
+    </span>
+  );
+}
+
+export function PriorityBadge({ priority }) {
+  return (
+    <span className={`${base} ${priorityStyles[priority] ?? priorityStyles.NORMAL}`}>
+      {priority} priority
     </span>
   );
 }

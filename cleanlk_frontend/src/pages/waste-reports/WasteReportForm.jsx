@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircleIcon } from "../../components/icons";
 import SeverityOptions from "./SeverityOptions";
-import { loadFromStorage, saveToStorage } from "../../utils/storage";
+import {
+  createWasteReport,
+  getWasteReport,
+  updateWasteReport,
+} from "../../api/wasteReports";
 import { validateWasteReport } from "../../utils/validation";
-import { AREAS, ISSUE_TYPES, STATUSES, STORAGE_KEY } from "./constants";
+import { AREAS, ISSUE_TYPES, STATUSES } from "./constants";
 
 const emptyForm = {
   fullName: "",
@@ -61,19 +65,19 @@ export default function WasteReportForm() {
   const [formData, setFormData] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(isEditMode);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [similarReports, setSimilarReports] = useState([]);
 
   // In edit mode, load the existing report's data into the form.
   useEffect(() => {
     if (!isEditMode) return;
 
-    const reports = loadFromStorage(STORAGE_KEY, []);
-    const existing = reports.find((r) => r.id === id);
-
-    if (existing) {
-      setFormData(existing);
-    } else {
-      setNotFound(true);
-    }
+    getWasteReport(id)
+      .then(setFormData)
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
   }, [id, isEditMode]);
 
   function setField(name, value) {
@@ -86,8 +90,7 @@ export default function WasteReportForm() {
     setField(name, value);
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  async function saveReport(submitAnyway = false) {
 
     const validationErrors = validateWasteReport(formData);
     setErrors(validationErrors);
@@ -101,28 +104,61 @@ export default function WasteReportForm() {
       return; // stop here — show friendly messages instead of saving
     }
 
-    const reports = loadFromStorage(STORAGE_KEY, []);
+    setSubmitting(true);
+    setServerError("");
 
-    if (isEditMode) {
-      const updated = reports.map((r) =>
-        r.id === id ? { ...formData, id } : r,
-      );
-      saveToStorage(STORAGE_KEY, updated);
-      navigate(`/waste-reports/${id}`, {
-        state: { flash: "Waste report updated successfully." },
-      });
-    } else {
-      const newReport = {
-        ...formData,
-        id: `wr-${Date.now()}`,
-        status: "Reported", // new reports always start as "Reported"
-      };
-      const updated = [newReport, ...reports];
-      saveToStorage(STORAGE_KEY, updated);
-      navigate("/waste-reports", {
-        state: { flash: "Waste issue reported successfully." },
-      });
+    try {
+      if (isEditMode) {
+        await updateWasteReport(id, formData);
+        navigate(`/waste-reports/${id}`, {
+          state: { flash: "Waste report updated successfully." },
+        });
+      } else {
+        await createWasteReport(
+          { ...formData, status: "Reported" },
+          submitAnyway,
+        );
+        navigate("/waste-reports", {
+          state: { flash: "Waste issue reported successfully." },
+        });
+      }
+    } catch (err) {
+      if (err.code === "SIMILAR_REPORTS_FOUND") {
+        setSimilarReports(err.similarReports);
+        setServerError("");
+        return;
+      }
+      const apiErrors = { ...err.fields };
+      if (apiErrors.name) {
+        apiErrors.fullName = apiErrors.name;
+        delete apiErrors.name;
+      }
+      setErrors(apiErrors);
+      setServerError(err.message);
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    const validationErrors = validateWasteReport(formData);
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      const firstErrorField = Object.keys(validationErrors)[0];
+      document
+        .getElementById(firstErrorField)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    saveReport(false);
+  }
+
+  if (loading) {
+    return <main className="px-5 py-20 text-center text-ink-muted">Loading report...</main>;
   }
 
   if (notFound) {
@@ -161,6 +197,42 @@ export default function WasteReportForm() {
         noValidate
         className="rounded-card border border-line bg-white p-6 shadow-card sm:p-8"
       >
+        {serverError && (
+          <div className="mb-6 rounded-xl border border-clay-500 bg-clay-50 p-4 text-sm font-medium text-clay-600">
+            {serverError}
+          </div>
+        )}
+        {similarReports.length > 0 && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="font-bold text-amber-800">
+              A similar issue has already been reported in this area.
+            </h2>
+            <p className="mt-2 text-sm text-amber-700">
+              We found {similarReports.length} possible similar {similarReports.length === 1 ? "report" : "reports"} for {formData.issueType} in {formData.area}.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/waste-reports?area=${encodeURIComponent(formData.area)}&issueType=${encodeURIComponent(formData.issueType)}`,
+                  )
+                }
+                className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800"
+              >
+                View Similar Reports
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => saveReport(true)}
+                className="rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {submitting ? "Submitting..." : "Submit Anyway"}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="space-y-7">
           <Field label="Full Name" htmlFor="fullName" error={errors.fullName}>
             <input
@@ -298,9 +370,14 @@ export default function WasteReportForm() {
           </button>
           <button
             type="submit"
+            disabled={submitting}
             className="rounded-xl bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-card transition-[background-color,transform] duration-150 hover:bg-brand-800 active:translate-y-px"
           >
-            {isEditMode ? "Update Report" : "Submit Report"}
+            {submitting
+              ? "Saving..."
+              : isEditMode
+                ? "Update Report"
+                : "Submit Report"}
           </button>
         </div>
       </form>

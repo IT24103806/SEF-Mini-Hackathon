@@ -2,6 +2,9 @@
 
 RESTful API service for the CleanLK waste management platform powered by Neon PostgreSQL.
 
+The Waste Reports module also provides JSON-backed smart reporting with
+priority classification, similar-report detection, and community statistics.
+
 ---
 
 ## 🚀 Quick Start
@@ -30,6 +33,17 @@ Server runs on: **`http://localhost:5000`**
 ---
 
 ## 📡 API Reference
+
+### Smart Waste Reports (`/api/waste-reports`)
+- **`GET /api/waste-reports`** — Search and filter reports
+- **`GET /api/waste-reports/stats`** — Community impact totals
+- **`GET /api/waste-reports/:id`** — View a report
+- **`POST /api/waste-reports`** — Create and check for similar reports
+- **`PUT /api/waste-reports/:id`** — Update a report
+- **`DELETE /api/waste-reports/:id`** — Delete a report
+
+Duplicate submissions return `409` with `code: "SIMILAR_REPORTS_FOUND"`.
+Repeat the create request with `"submitAnyway": true` to confirm it.
 
 ### Health Check
 - **`GET /api/health`** — Verify server status

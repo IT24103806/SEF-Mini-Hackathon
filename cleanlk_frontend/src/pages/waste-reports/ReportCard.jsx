@@ -6,7 +6,7 @@ import {
   PencilIcon,
   Trash2Icon,
 } from "../../components/icons";
-import { StatusBadge, SeverityBadge } from "./Badges";
+import { PriorityBadge, StatusBadge, SeverityBadge } from "./Badges";
 import { formatReportDate } from "../../utils/format";
 
 export default function ReportCard({ report, onDelete }) {
@@ -30,11 +30,18 @@ export default function ReportCard({ report, onDelete }) {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <StatusBadge status={report.status} />
         <SeverityBadge severity={report.severity} />
+        <PriorityBadge priority={report.priority} />
       </div>
 
       <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-ink-soft">
         {report.description}
       </p>
+
+      {report.similarReportCount > 0 && (
+        <p className="mt-3 text-xs font-semibold text-amber-700">
+          {report.similarReportCount} similar {report.similarReportCount === 1 ? "report" : "reports"} in this area
+        </p>
+      )}
 
       <div className="mt-auto pt-5">
         <p className="flex items-center gap-1.5 text-xs font-medium text-ink-faint">
