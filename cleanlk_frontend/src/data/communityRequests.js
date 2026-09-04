@@ -1,4 +1,33 @@
-﻿export const initialRequests = [
+export const REQUEST_TYPES = [
+  "New Waste Bin",
+  "Extra Collection",
+  "Cleanup Request",
+  "Missing Collection Point",
+];
+
+export const PRIORITIES = ["Low", "Medium", "High"];
+
+export const STATUS_OPTIONS = [
+  "Pending",
+  "Under Review",
+  "Approved",
+  "Completed",
+];
+
+export const SAMPLE_AREAS = [
+  "Colombo",
+  "Kandy",
+  "Galle",
+  "Gampaha",
+  "Kegalle",
+  "Kurunegala",
+  "Jaffna",
+  "Matara",
+  "Negombo",
+  "Ratnapura",
+];
+
+export const initialRequests = [
   {
     id: 1,
     name: "Kasun Perera",
@@ -30,3 +59,4 @@
     createdAt: "2026-09-03"
   }
 ];
+

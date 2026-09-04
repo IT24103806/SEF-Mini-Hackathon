@@ -1,9 +1,14 @@
-// Generic localStorage helpers.
-// Kept intentionally simple so it's easy to explain in a demo.
+import { SAMPLE_COLLECTION_SCHEDULES } from '../data/collectionSchedules.js';
+import { SAMPLE_WASTE_LOCATIONS } from '../data/wasteLocations.js';
+import { initialRequests } from '../data/communityRequests.js';
+
+// Keys
+const SCHEDULES_KEY = 'cleanlk_collection_schedules';
+const LOCATIONS_KEY = 'cleanlk_waste_locations';
+const COMMUNITY_KEY = 'cleanlk_community_requests';
 
 /**
- * Read a value from localStorage and parse it as JSON.
- * Returns `fallback` if the key doesn't exist or JSON.parse fails.
+ * Generic read from localStorage with JSON parsing & fallback
  */
 export function loadFromStorage(key, fallback) {
   try {
@@ -17,7 +22,7 @@ export function loadFromStorage(key, fallback) {
 }
 
 /**
- * Save a value to localStorage as JSON.
+ * Generic save to localStorage
  */
 export function saveToStorage(key, value) {
   try {
@@ -26,21 +31,46 @@ export function saveToStorage(key, value) {
     console.error(`Failed to save "${key}" to localStorage`, err);
   }
 }
-﻿const STORAGE_KEY = "cleanlk_community_requests";
 
-export const getStoredRequests = (fallbackData) => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackData));
-    return fallbackData;
-  }
-  try {
-    return JSON.parse(data);
-  } catch (err) {
-    return fallbackData;
-  }
+// ---------------------------------------------------------------------------
+// Collection Schedules Storage Helpers
+// ---------------------------------------------------------------------------
+export function loadCollectionSchedules() {
+  return loadFromStorage(SCHEDULES_KEY, SAMPLE_COLLECTION_SCHEDULES);
+}
+
+export function saveCollectionSchedules(schedules) {
+  saveToStorage(SCHEDULES_KEY, schedules);
+}
+
+export function resetCollectionSchedules() {
+  saveToStorage(SCHEDULES_KEY, SAMPLE_COLLECTION_SCHEDULES);
+  return SAMPLE_COLLECTION_SCHEDULES;
+}
+
+// ---------------------------------------------------------------------------
+// Waste Locations Storage Helpers
+// ---------------------------------------------------------------------------
+export function loadWasteLocations() {
+  return loadFromStorage(LOCATIONS_KEY, SAMPLE_WASTE_LOCATIONS);
+}
+
+export function saveWasteLocations(locations) {
+  saveToStorage(LOCATIONS_KEY, locations);
+}
+
+export function resetWasteLocations() {
+  saveToStorage(LOCATIONS_KEY, SAMPLE_WASTE_LOCATIONS);
+  return SAMPLE_WASTE_LOCATIONS;
+}
+
+// ---------------------------------------------------------------------------
+// Community Requests Storage Helpers
+// ---------------------------------------------------------------------------
+export const getStoredRequests = (fallbackData = initialRequests) => {
+  return loadFromStorage(COMMUNITY_KEY, fallbackData);
 };
 
 export const saveRequests = (requests) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+  saveToStorage(COMMUNITY_KEY, requests);
 };

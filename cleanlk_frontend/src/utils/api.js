@@ -1,10 +1,133 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 /**
+ * Waste Locations API Service
+ */
+export const wasteLocationsApi = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams();
+    if (params.area && params.area !== 'All') query.append('area', params.area);
+    if (params.category && params.category !== 'All') query.append('category', params.category);
+    if (params.search) query.append('search', params.search);
+
+    const url = `${API_BASE}/locations${query.toString() ? `?${query.toString()}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch waste locations');
+    }
+    return res.json();
+  },
+
+  async getById(id) {
+    const res = await fetch(`${API_BASE}/locations/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch location');
+    }
+    return res.json();
+  },
+
+  async create(data) {
+    const res = await fetch(`${API_BASE}/locations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to create location');
+    }
+    return result;
+  },
+
+  async update(id, data) {
+    const res = await fetch(`${API_BASE}/locations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to update location');
+    }
+    return result;
+  },
+
+  async delete(id) {
+    const res = await fetch(`${API_BASE}/locations/${id}`, {
+      method: 'DELETE',
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to delete location');
+    }
+    return result;
+  },
+};
+
+/**
+ * Collection Schedules API Service
+ */
+export const collectionSchedulesApi = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams();
+    if (params.area && params.area !== 'All') query.append('area', params.area);
+    if (params.wasteType && params.wasteType !== 'All') query.append('wasteType', params.wasteType);
+    if (params.day && params.day !== 'All') query.append('day', params.day);
+    if (params.search) query.append('search', params.search);
+
+    const url = `${API_BASE}/schedules${query.toString() ? `?${query.toString()}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch collection schedules');
+    }
+    return res.json();
+  },
+
+  async create(data) {
+    const res = await fetch(`${API_BASE}/schedules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to create schedule');
+    }
+    return result;
+  },
+
+  async update(id, data) {
+    const res = await fetch(`${API_BASE}/schedules/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to update schedule');
+    }
+    return result;
+  },
+
+  async delete(id) {
+    const res = await fetch(`${API_BASE}/schedules/${id}`, {
+      method: 'DELETE',
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to delete schedule');
+    }
+    return result;
+  },
+};
+
+/**
  * Community Requests API Service
  */
 export const communityRequestsApi = {
-  // GET all with optional query params (area, status, priority, search)
   async getAll(params = {}) {
     const query = new URLSearchParams();
     if (params.area && params.area !== 'All') query.append('area', params.area);
@@ -21,7 +144,6 @@ export const communityRequestsApi = {
     return res.json();
   },
 
-  // GET single
   async getById(id) {
     const res = await fetch(`${API_BASE}/community-requests/${id}`);
     if (!res.ok) {
@@ -31,7 +153,6 @@ export const communityRequestsApi = {
     return res.json();
   },
 
-  // POST create
   async create(data) {
     const res = await fetch(`${API_BASE}/community-requests`, {
       method: 'POST',
@@ -45,7 +166,6 @@ export const communityRequestsApi = {
     return result;
   },
 
-  // PUT update
   async update(id, data) {
     const res = await fetch(`${API_BASE}/community-requests/${id}`, {
       method: 'PUT',
@@ -59,7 +179,6 @@ export const communityRequestsApi = {
     return result;
   },
 
-  // PATCH status
   async updateStatus(id, status) {
     const res = await fetch(`${API_BASE}/community-requests/${id}/status`, {
       method: 'PATCH',
@@ -73,7 +192,6 @@ export const communityRequestsApi = {
     return result;
   },
 
-  // DELETE
   async delete(id) {
     const res = await fetch(`${API_BASE}/community-requests/${id}`, {
       method: 'DELETE',

@@ -1,27 +1,79 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { communityRequestsApi } from "../../utils/api";
-import { initialRequests } from "../../data/communityRequests";
-import { getStoredRequests, saveRequests } from "../../utils/storage";
+/**
+ * CommunityRequests.jsx
+ * CleanLK — Community Requests & Services Module (M4)
+ * Full CRUD connected with Neon Database Backend & LocalStorage Fallback.
+ * Built with popup form modal, filters, stats overview, and clean emerald theme.
+ */
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Button from "../../components/Button.jsx";
+import Modal from "../../components/Modal.jsx";
+import CommunityRequestForm from "./CommunityRequestForm.jsx";
+import CommunityRequestDetails from "./CommunityRequestDetails.jsx";
+import { communityRequestsApi } from "../../utils/api.js";
+import { initialRequests, SAMPLE_AREAS, REQUEST_TYPES, PRIORITIES, STATUS_OPTIONS } from "../../data/communityRequests.js";
+import { getStoredRequests, saveRequests } from "../../utils/storage.js";
+import "./CommunityRequests.css";
+
+function getRequestTypeBadge(requestType) {
+  switch (requestType) {
+    case "New Waste Bin":
+      return { icon: "🗑️", className: "badge-bin" };
+    case "Extra Collection":
+      return { icon: "🚛", className: "badge-pickup" };
+    case "Cleanup Request":
+      return { icon: "🧹", className: "badge-cleanup" };
+    case "Missing Collection Point":
+    default:
+      return { icon: "📍", className: "badge-missing" };
+  }
+}
+
+function getPriorityClass(priority) {
+  switch (priority) {
+    case "High":
+      return "priority-high";
+    case "Medium":
+      return "priority-medium";
+    case "Low":
+    default:
+      return "priority-low";
+  }
+}
 
 export default function CommunityRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    name: "",
-    area: "Colombo",
-    requestType: "New Waste Bin",
-    priority: "Medium",
-    description: "",
-  });
-  const [editingId, setEditingId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [priorityFilter, setPriorityFilter] = useState("All");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isBackendConnected, setIsBackendConnected] = useState(false);
 
-  // Fetch Requests from Backend (with fallback to storage)
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState("");
+
+  // Modal Dialog states
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [viewingRequest, setViewingRequest] = useState(null);
+  const [deletingRequest, setDeletingRequest] = useState(null);
+
+  // Toast notification state
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Fetch Requests from Backend (with local storage fallback)
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
@@ -52,39 +104,105 @@ export default function CommunityRequests() {
     saveRequests(updatedList);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  // Derive unique areas list
+  const availableAreas = useMemo(() => {
+    const areaSet = new Set(SAMPLE_AREAS);
+    requests.forEach((item) => {
+      if (item.area && item.area.trim()) {
+        areaSet.add(item.area.trim());
+      }
+    });
+    return Array.from(areaSet).sort();
+  }, [requests]);
+
+  // Filtered requests computation
+  const filteredRequests = useMemo(() => {
+    return requests.filter((item) => {
+      if (searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase();
+        const areaMatch = (item.area || "").toLowerCase().includes(query);
+        const nameMatch = (item.name || "").toLowerCase().includes(query);
+        const typeMatch = (item.requestType || "").toLowerCase().includes(query);
+        const descMatch = (item.description || "").toLowerCase().includes(query);
+
+        if (!areaMatch && !nameMatch && !typeMatch && !descMatch) {
+          return false;
+        }
+      }
+
+      if (selectedArea && item.area.toLowerCase() !== selectedArea.toLowerCase()) {
+        return false;
+      }
+
+      if (selectedStatus && item.status !== selectedStatus) {
+        return false;
+      }
+
+      if (selectedPriority && item.priority !== selectedPriority) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [requests, searchQuery, selectedArea, selectedStatus, selectedPriority]);
+
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() || selectedArea || selectedStatus || selectedPriority
+  );
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedArea("");
+    setSelectedStatus("");
+    setSelectedPriority("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  // Stats computation
+  const stats = useMemo(() => {
+    return {
+      total: requests.length,
+      pending: requests.filter((r) => r.status === "Pending").length,
+      inReview: requests.filter((r) => r.status === "Under Review").length,
+      approved: requests.filter((r) => r.status === "Approved").length,
+      completed: requests.filter((r) => r.status === "Completed").length,
+    };
+  }, [requests]);
 
-    if (!formData.name.trim()) {
-      setError("⚠️ Please enter your full name.");
-      return;
-    }
-    if (formData.description.trim().length < 10) {
-      setError("⚠️ Description must be at least 10 characters long.");
-      return;
-    }
+  // Open Create Modal
+  const handleOpenCreate = () => {
+    setEditingRequest(null);
+    setIsFormModalOpen(true);
+  };
 
+  // Open Edit Modal
+  const handleOpenEdit = (request) => {
+    setEditingRequest(request);
+    if (viewingRequest) setViewingRequest(null);
+    setIsFormModalOpen(true);
+  };
+
+  // Close Form Modal
+  const handleCloseFormModal = () => {
+    setIsFormModalOpen(false);
+    setEditingRequest(null);
+  };
+
+  // Handle Form Submit (Create & Update)
+  const handleFormSubmit = async (formData) => {
     try {
-      if (editingId) {
+      if (editingRequest) {
         if (isBackendConnected) {
-          const res = await communityRequestsApi.update(editingId, formData);
+          const res = await communityRequestsApi.update(editingRequest.id, formData);
           setRequests((prev) =>
-            prev.map((item) => (item.id === editingId ? res.data : item))
+            prev.map((item) => (item.id === editingRequest.id ? res.data : item))
           );
         } else {
           const updated = requests.map((item) =>
-            item.id === editingId ? { ...item, ...formData } : item
+            item.id === editingRequest.id ? { ...item, ...formData } : item
           );
           updateStateAndStorage(updated);
         }
-        setSuccess("✅ Community request updated successfully!");
-        setEditingId(null);
+        showToast("Community request updated successfully!", "success");
       } else {
         if (isBackendConnected) {
           const res = await communityRequestsApi.create(formData);
@@ -98,50 +216,15 @@ export default function CommunityRequests() {
           };
           updateStateAndStorage([newEntry, ...requests]);
         }
-        setSuccess("✅ Community request submitted successfully!");
+        showToast("New community request submitted successfully!", "success");
       }
-
-      setFormData({
-        name: "",
-        area: "Colombo",
-        requestType: "New Waste Bin",
-        priority: "Medium",
-        description: "",
-      });
-      setTimeout(() => setSuccess(""), 3500);
+      handleCloseFormModal();
     } catch (err) {
-      setError(`⚠️ ${err.message || "Failed to submit request"}`);
+      showToast(`Submission failed: ${err.message}`, "danger");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this community request?")) {
-      try {
-        if (isBackendConnected) {
-          await communityRequestsApi.delete(id);
-        }
-        const updated = requests.filter((item) => item.id !== id);
-        updateStateAndStorage(updated);
-        setSuccess("🗑️ Community request deleted successfully.");
-        setTimeout(() => setSuccess(""), 3000);
-      } catch (err) {
-        setError(`⚠️ ${err.message || "Failed to delete request"}`);
-      }
-    }
-  };
-
-  const handleEdit = (item) => {
-    setEditingId(item.id);
-    setFormData({
-      name: item.name,
-      area: item.area,
-      requestType: item.requestType,
-      priority: item.priority,
-      description: item.description,
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
+  // Handle Status Update
   const handleStatusChange = async (id, newStatus) => {
     try {
       if (isBackendConnected) {
@@ -155,284 +238,460 @@ export default function CommunityRequests() {
         );
         updateStateAndStorage(updated);
       }
-      setSuccess(`✅ Status updated to '${newStatus}'!`);
-      setTimeout(() => setSuccess(""), 3000);
+      showToast(`Status updated to "${newStatus}"!`, "success");
     } catch (err) {
-      setError(`⚠️ ${err.message || "Failed to update status"}`);
+      showToast(`Failed to update status: ${err.message}`, "danger");
     }
   };
 
-  // Dashboard Stats
-  const stats = {
-    total: requests.length,
-    pending: requests.filter((r) => r.status === "Pending").length,
-    inReview: requests.filter((r) => r.status === "Under Review").length,
-    approved: requests.filter((r) => r.status === "Approved").length,
-    completed: requests.filter((r) => r.status === "Completed").length,
+  // Handle Delete Confirmation
+  const handleConfirmDelete = async () => {
+    if (!deletingRequest) return;
+    try {
+      if (isBackendConnected) {
+        await communityRequestsApi.delete(deletingRequest.id);
+      }
+      const updated = requests.filter((item) => item.id !== deletingRequest.id);
+      updateStateAndStorage(updated);
+      showToast("Community request deleted successfully.", "success");
+      setDeletingRequest(null);
+      if (viewingRequest) setViewingRequest(null);
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, "danger");
+    }
   };
 
-  // Search & Filters
-  const filteredRequests = requests.filter((item) => {
-    const query = searchTerm.toLowerCase().trim();
-    const matchesArea =
-      !query ||
-      item.area?.toLowerCase().includes(query) ||
-      item.name?.toLowerCase().includes(query) ||
-      item.requestType?.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query);
-
-    const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-    const matchesPriority = priorityFilter === "All" || item.priority === priorityFilter;
-
-    return matchesArea && matchesStatus && matchesPriority;
-  });
-
   return (
-    <div style={{ maxWidth: "900px", margin: "20px auto", padding: "16px", fontFamily: "system-ui, sans-serif" }}>
-      {/* HEADER */}
-      <header style={{ marginBottom: "20px", borderBottom: "2px solid #e5e7eb", paddingBottom: "12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: 0 }}>
-              📋 Community Requests & Services (M4)
-            </h1>
-            <p style={{ color: "#4b5563", marginTop: "6px", fontSize: "14px" }}>
-              Request bins, extra collections, or cleanup drives across Sri Lankan municipal areas.
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", background: isBackendConnected ? "#ecfdf5" : "#fef3c7", color: isBackendConnected ? "#065f46" : "#92400e", padding: "5px 12px", borderRadius: "9999px", border: `1px solid ${isBackendConnected ? '#a7f3d0' : '#fde68a'}` }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: isBackendConnected ? "#10b981" : "#f59e0b", display: "inline-block" }}></span>
-            <strong>{isBackendConnected ? "Neon DB Connected" : "Local Mode"}</strong>
-          </div>
+    <div className="cr-page-wrapper">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`cr-toast cr-toast--${toast.type}`}
+          role="alert"
+          aria-live="polite"
+        >
+          <span>{toast.type === "success" ? "✅" : "⚠️"}</span>
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            className="cr-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+          >
+            &times;
+          </button>
         </div>
-      </header>
+      )}
 
-      {/* DASHBOARD STATS */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", marginBottom: "24px" }}>
-        <div style={{ background: "#f3f4f6", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600" }}>Total Requests</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#111827" }}>{stats.total}</div>
+      {/* Hero Section */}
+      <section className="cr-hero-section">
+        <div className="cr-hero-content">
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
+            <div className="cr-hero-tag" style={{ margin: 0 }}>
+              <span>📢</span> Empowering Cleaner Neighborhoods
+            </div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                background: isBackendConnected ? "#ecfdf5" : "#fef3c7",
+                color: isBackendConnected ? "#065f46" : "#92400e",
+                padding: "4px 10px",
+                borderRadius: "9999px",
+                border: `1px solid ${isBackendConnected ? "#a7f3d0" : "#fde68a"}`,
+              }}
+            >
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: isBackendConnected ? "#10b981" : "#f59e0b",
+                  display: "inline-block",
+                }}
+              ></span>
+              <strong>{isBackendConnected ? "Online" : "Offline"}</strong>
+            </div>
+          </div>
+
+          <h1 className="cr-hero-heading">
+            Request Waste Services <br />
+            For Your <span className="cr-hero-heading-highlight">Community.</span>
+          </h1>
+
+          <p className="cr-hero-subtext">
+            Need an extra waste bin, additional recycling pickup, or a community cleanup event?
+            Submit your municipal request and track its progress from review to completion.
+          </p>
+
+          <div className="cr-hero-actions">
+            <button
+              type="button"
+              className="cr-hero-btn-primary"
+              onClick={handleOpenCreate}
+            >
+              + Submit Community Request
+            </button>
+            <a
+              href="#requests-directory"
+              className="cr-hero-btn-secondary"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById("requests-directory");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              Explore Requests
+            </a>
+          </div>
+
+          <div className="cr-hero-caption">
+            Transparent • Civic-Minded • Built for Sri Lanka
+          </div>
         </div>
-        <div style={{ background: "#fef3c7", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #fde68a" }}>
-          <div style={{ fontSize: "12px", color: "#92400e", fontWeight: "600" }}>Pending</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#b45309" }}>{stats.pending}</div>
-        </div>
-        <div style={{ background: "#e0e7ff", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #c7d2fe" }}>
-          <div style={{ fontSize: "12px", color: "#3730a3", fontWeight: "600" }}>Under Review</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#4338ca" }}>{stats.inReview}</div>
-        </div>
-        <div style={{ background: "#dbeafe", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #bfdbfe" }}>
-          <div style={{ fontSize: "12px", color: "#1e40af", fontWeight: "600" }}>Approved</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#1d4ed8" }}>{stats.approved}</div>
-        </div>
-        <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "8px", textAlign: "center", border: "1px solid #bbf7d0" }}>
-          <div style={{ fontSize: "12px", color: "#166534", fontWeight: "600" }}>Completed</div>
-          <div style={{ fontSize: "22px", fontWeight: "700", color: "#15803d" }}>{stats.completed}</div>
+
+        {/* Right Floating Card */}
+        <div className="cr-hero-visual-col">
+          <div className="cr-hero-banner-frame">
+            <div className="cr-hero-backdrop-visual">
+              <div className="cr-backdrop-badge">
+                <span>🇱🇰</span> Civic Action Hub
+              </div>
+            </div>
+
+            <div className="cr-floating-overview-card">
+              <div className="cr-floating-card-header">
+                <span className="cr-floating-card-title">Live Request Pulse</span>
+                <div className="cr-floating-leaf-badge">
+                  <span style={{ fontSize: "14px" }}>🌱</span>
+                </div>
+              </div>
+
+              <div className="cr-floating-metrics-row">
+                <div className="cr-floating-metric">
+                  <div className="cr-metric-value">{stats.total}</div>
+                  <div className="cr-metric-label">Total</div>
+                  <div className="cr-metric-bar cr-metric-bar--green"></div>
+                </div>
+
+                <div className="cr-floating-metric">
+                  <div className="cr-metric-value">{stats.pending}</div>
+                  <div className="cr-metric-label">Pending</div>
+                  <div className="cr-metric-bar cr-metric-bar--amber"></div>
+                </div>
+
+                <div className="cr-floating-metric">
+                  <div className="cr-metric-value">{stats.approved}</div>
+                  <div className="cr-metric-label">Approved</div>
+                  <div className="cr-metric-bar cr-metric-bar--blue"></div>
+                </div>
+
+                <div className="cr-floating-metric">
+                  <div className="cr-metric-value">{stats.completed}</div>
+                  <div className="cr-metric-label">Done</div>
+                  <div className="cr-metric-bar cr-metric-bar--emerald"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* CREATE & EDIT FORM */}
-      <section style={{ background: "#ffffff", border: "1px solid #d1d5db", borderRadius: "8px", padding: "20px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#065f46", marginTop: 0 }}>
-          {editingId ? "✏️ Edit Request" : "➕ Submit New Community Request"}
-        </h2>
-
-        {error && <div style={{ background: "#fee2e2", color: "#991b1b", padding: "10px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px" }}>{error}</div>}
-        {success && <div style={{ background: "#d1fae5", color: "#065f46", padding: "10px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px" }}>{success}</div>}
-
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "14px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+      {/* Directory & Controls Section */}
+      <div id="requests-directory">
+        <div className="cr-controls-card">
+          <div className="cr-controls-header">
             <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Full Name *</label>
+              <h2 className="cr-controls-title">Community Requests Directory</h2>
+              <p className="cr-controls-subtitle">
+                Search, filter by municipal region, priority, or track request fulfillment status.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="cr-add-request-btn"
+              onClick={handleOpenCreate}
+            >
+              + Submit Request
+            </button>
+          </div>
+
+          {/* Search Row */}
+          <div className="cr-search-row">
+            <div className="cr-search-wrapper">
+              <span className="cr-search-icon">🔍</span>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="e.g. Dinelka Perera"
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
+                className="cr-search-input"
+                placeholder="Search by area, requester name, request type, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Area *</label>
-              <select
-                name="area"
-                value={formData.area}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box", background: "#fff" }}
-              >
-                <option>Colombo</option>
-                <option>Kandy</option>
-                <option>Kegalle</option>
-                <option>Gampaha</option>
-                <option>Galle</option>
-                <option>Kurunegala</option>
-              </select>
-            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Request Type *</label>
+          {/* Filters Row */}
+          <div className="cr-filters-row">
+            <div className="cr-filter-group">
+              <label className="cr-filter-label">Municipal Area</label>
               <select
-                name="requestType"
-                value={formData.requestType}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box", background: "#fff" }}
+                className="cr-filter-select"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
               >
-                <option>New Waste Bin</option>
-                <option>Extra Collection</option>
-                <option>Cleanup Request</option>
-                <option>Missing Collection Point</option>
+                <option value="">All Municipal Areas</option>
+                {availableAreas.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
               </select>
             </div>
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Priority *</label>
+
+            <div className="cr-filter-group">
+              <label className="cr-filter-label">Status</label>
               <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleInputChange}
-                style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box", background: "#fff" }}
+                className="cr-filter-select"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
               >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
+                <option value="">All Statuses</option>
+                {STATUS_OPTIONS.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>Description *</label>
-            <textarea
-              name="description"
-              rows="3"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Detail your request (minimum 10 characters)..."
-              style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              type="submit"
-              style={{ background: "#059669", color: "#fff", border: "none", padding: "8px 18px", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}
-            >
-              {editingId ? "Update Request" : "Submit Request"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({ name: "", area: "Colombo", requestType: "New Waste Bin", priority: "Medium", description: "" });
-                }}
-                style={{ background: "#6b7280", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "5px", cursor: "pointer" }}
+            <div className="cr-filter-group">
+              <label className="cr-filter-label">Priority</label>
+              <select
+                className="cr-filter-select"
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
               >
-                Cancel
-              </button>
+                <option value="">All Priorities</option>
+                {PRIORITIES.map((pr) => (
+                  <option key={pr} value={pr}>
+                    {pr} Priority
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <div style={{ paddingBottom: "2px" }}>
+                <Button variant="ghost" onClick={clearFilters}>
+                  Clear All Filters
+                </Button>
+              </div>
             )}
           </div>
-        </form>
-      </section>
-
-      {/* SEARCH, FILTER & LIST */}
-      <section>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-          <input
-            type="text"
-            placeholder="🔎 Search by area..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: "8px 12px", border: "1px solid #ccc", borderRadius: "5px" }}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: "8px", border: "1px solid #ccc", borderRadius: "5px", background: "#fff" }}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Under Review">Under Review</option>
-            <option value="Approved">Approved</option>
-            <option value="Completed">Completed</option>
-          </select>
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            style={{ padding: "8px", border: "1px solid #ccc", borderRadius: "5px", background: "#fff" }}
-          >
-            <option value="All">All Priorities</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select>
         </div>
 
+        {/* Status Bar */}
+        <div className="cr-status-bar">
+          <div>
+            Showing <strong>{filteredRequests.length}</strong> of{" "}
+            <strong>{requests.length}</strong> requests
+          </div>
+
+          {hasActiveFilters && (
+            <div className="cr-active-filter-pills">
+              {searchQuery && <span className="cr-pill">Query: "{searchQuery}"</span>}
+              {selectedArea && <span className="cr-pill">Area: {selectedArea}</span>}
+              {selectedStatus && <span className="cr-pill">Status: {selectedStatus}</span>}
+              {selectedPriority && <span className="cr-pill">Priority: {selectedPriority}</span>}
+            </div>
+          )}
+        </div>
+
+        {/* Request Cards Grid */}
         {loading ? (
-          <p style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}>Loading requests...</p>
-        ) : (
-          <div style={{ display: "grid", gap: "12px" }}>
-            {filteredRequests.length === 0 ? (
-              <p style={{ color: "#6b7280", textAlign: "center", padding: "20px", background: "#f9fafb", borderRadius: "6px" }}>
-                No community requests found matching criteria.
-              </p>
+          <div style={{ textAlign: "center", padding: "48px 0", color: "#6b7280" }}>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>⏳</div>
+            <p>Loading community requests...</p>
+          </div>
+        ) : filteredRequests.length === 0 ? (
+          <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "48px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: "36px", marginBottom: "12px" }}>📋</div>
+            <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#111827", margin: "0 0 6px 0" }}>
+              No Community Requests Found
+            </h3>
+            <p style={{ color: "#6b7280", fontSize: "14px", margin: "0 0 18px 0" }}>
+              {hasActiveFilters
+                ? "No requests matched your search criteria. Try adjusting your filters."
+                : "No community requests have been submitted yet. Be the first to request a service!"}
+            </p>
+            {hasActiveFilters ? (
+              <Button variant="secondary" onClick={clearFilters}>
+                Reset Filters
+              </Button>
             ) : (
-              filteredRequests.map((item) => (
-                <div
-                  key={item.id}
-                  style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ background: "#ecfdf5", color: "#065f46", fontSize: "12px", fontWeight: "600", padding: "3px 8px", borderRadius: "4px" }}>
-                      {item.requestType}
-                    </span>
-                    <span style={{ fontSize: "12px", color: "#9ca3af" }}>{item.createdAt}</span>
+              <Button variant="primary" onClick={handleOpenCreate}>
+                + Submit New Request
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="cr-grid">
+            {filteredRequests.map((item) => {
+              const typeBadge = getRequestTypeBadge(item.requestType);
+              const priorityClass = getPriorityClass(item.priority);
+
+              return (
+                <div key={item.id} className="cr-card">
+                  <div className="cr-card-header">
+                    <div className="cr-card-badges">
+                      <span className={`cr-badge ${typeBadge.className}`}>
+                        <span>{typeBadge.icon}</span>
+                        <span>{item.requestType}</span>
+                      </span>
+                      <span className={`cr-badge ${priorityClass}`}>
+                        {item.priority}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 style={{ fontSize: "16px", margin: "8px 0 4px 0", color: "#111827" }}>📍 {item.area}</h3>
-                  <p style={{ fontSize: "14px", color: "#4b5563", margin: "0 0 10px 0" }}>{item.description}</p>
-
-                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "12px" }}>
-                    <span>Requested By: <strong>{item.name}</strong></span> | <span>Priority: <strong>{item.priority}</strong></span>
+                  <div className="cr-card-body">
+                    <h3 className="cr-card-area">📍 {item.area}</h3>
+                    <p className="cr-card-desc">{item.description}</p>
+                    <div className="cr-card-meta">
+                      <span>👤 {item.name}</span> • <span>📅 {item.createdAt || "Recent"}</span>
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f3f4f6", paddingTop: "10px" }}>
+                  <div className="cr-card-footer">
                     <div>
-                      <label style={{ fontSize: "12px", marginRight: "6px", color: "#374151" }}>Status:</label>
                       <select
-                        value={item.status}
+                        className="cr-status-select"
+                        value={item.status || "Pending"}
                         onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                        style={{ fontSize: "12px", padding: "4px 8px", borderRadius: "4px", border: "1px solid #d1d5db", background: "#fff" }}
+                        style={{
+                          background:
+                            item.status === "Completed"
+                              ? "#dcfce7"
+                              : item.status === "Approved"
+                              ? "#dbeafe"
+                              : item.status === "Under Review"
+                              ? "#e0e7ff"
+                              : "#fef3c7",
+                          color:
+                            item.status === "Completed"
+                              ? "#166534"
+                              : item.status === "Approved"
+                              ? "#1e40af"
+                              : item.status === "Under Review"
+                              ? "#3730a3"
+                              : "#92400e",
+                          borderColor:
+                            item.status === "Completed"
+                              ? "#86efac"
+                              : item.status === "Approved"
+                              ? "#93c5fd"
+                              : item.status === "Under Review"
+                              ? "#a5b4fc"
+                              : "#fde68a",
+                        }}
                       >
-                        <option value="Pending">Pending</option>
-                        <option value="Under Review">Under Review</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Completed">Completed</option>
+                        {STATUS_OPTIONS.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        onClick={() => handleEdit(item)}
-                        style={{ background: "#f59e0b", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewingRequest(item)}
+                      >
+                        Details
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenEdit(item)}
                       >
                         Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        style={{ background: "#ef4444", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setDeletingRequest(item)}
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
         )}
-      </section>
+      </div>
+
+      {/* MODAL 1: Form Modal (Popup Create / Edit) */}
+      <Modal
+        isOpen={isFormModalOpen}
+        onClose={handleCloseFormModal}
+        title={editingRequest ? "Edit Community Request" : "Submit Community Request"}
+        size="md"
+      >
+        <CommunityRequestForm
+          initialData={editingRequest}
+          onSubmit={handleFormSubmit}
+          onCancel={handleCloseFormModal}
+          showTitle={false}
+        />
+      </Modal>
+
+      {/* MODAL 2: Details Modal */}
+      <Modal
+        isOpen={Boolean(viewingRequest)}
+        onClose={() => setViewingRequest(null)}
+        title="Community Request Details"
+        size="md"
+      >
+        <CommunityRequestDetails
+          request={viewingRequest}
+          onClose={() => setViewingRequest(null)}
+          onEdit={handleOpenEdit}
+          onDelete={(req) => {
+            setDeletingRequest(req);
+            setViewingRequest(null);
+          }}
+        />
+      </Modal>
+
+      {/* MODAL 3: Delete Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(deletingRequest)}
+        onClose={() => setDeletingRequest(null)}
+        title="Confirm Deletion"
+        size="sm"
+      >
+        <div style={{ padding: "8px 0" }}>
+          <p style={{ color: "#374151", fontSize: "14px", lineHeight: "1.5", margin: "0 0 16px 0" }}>
+            Are you sure you want to delete this community request from{" "}
+            <strong>{deletingRequest?.area}</strong> by{" "}
+            <strong>{deletingRequest?.name}</strong>?
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <Button variant="ghost" onClick={() => setDeletingRequest(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>
+              Delete Request
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

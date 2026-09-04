@@ -2,6 +2,7 @@ import { query } from './db.js';
 import { initialReports } from '../data/seedReports.js';
 import { initialSchedules } from '../data/seedSchedules.js';
 import { initialCommunityRequests } from '../data/seedCommunityRequests.js';
+import { initialLocations } from '../data/seedLocations.js';
 
 export const initDb = async () => {
   try {
@@ -32,7 +33,8 @@ export const initDb = async () => {
         time VARCHAR(100) NOT NULL,
         location VARCHAR(255) NOT NULL,
         frequency VARCHAR(100) NOT NULL,
-        next_collection VARCHAR(100) NOT NULL
+        next_collection VARCHAR(100) NOT NULL,
+        notes TEXT
       );
     `);
 
@@ -51,7 +53,24 @@ export const initDb = async () => {
       );
     `);
 
-    // 4. Seed Reports if empty
+    // 4. Create Locations Table
+    await query(`
+      CREATE TABLE IF NOT EXISTS locations (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        area VARCHAR(100) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        address VARCHAR(255) NOT NULL,
+        contact VARCHAR(100),
+        open_hours VARCHAR(100) NOT NULL,
+        accepted_waste TEXT,
+        coordinates VARCHAR(100),
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 5. Seed Reports if empty
     const reportCountRes = await query('SELECT COUNT(*) FROM reports;');
     const reportCount = parseInt(reportCountRes.rows[0].count, 10);
 
@@ -67,7 +86,7 @@ export const initDb = async () => {
       }
     }
 
-    // 5. Seed Schedules if empty
+    // 6. Seed Schedules if empty
     const scheduleCountRes = await query('SELECT COUNT(*) FROM schedules;');
     const scheduleCount = parseInt(scheduleCountRes.rows[0].count, 10);
 
@@ -75,15 +94,15 @@ export const initDb = async () => {
       console.log('🌱 Seeding initial collection schedules into Neon DB...');
       for (const s of initialSchedules) {
         await query(
-          `INSERT INTO schedules (id, area, waste_type, day, time, location, frequency, next_collection)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO schedules (id, area, waste_type, day, time, location, frequency, next_collection, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (id) DO NOTHING;`,
-          [s.id, s.area, s.wasteType, s.day, s.time, s.location, s.frequency, s.nextCollection]
+          [s.id, s.area, s.wasteType, s.day, s.time, s.location, s.frequency, s.nextCollection, s.notes || '']
         );
       }
     }
 
-    // 6. Seed Community Requests if empty
+    // 7. Seed Community Requests if empty
     const crCountRes = await query('SELECT COUNT(*) FROM community_requests;');
     const crCount = parseInt(crCountRes.rows[0].count, 10);
 
@@ -95,6 +114,33 @@ export const initDb = async () => {
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (id) DO NOTHING;`,
           [cr.id, cr.name, cr.area, cr.requestType, cr.priority, cr.status, cr.description, cr.createdAt]
+        );
+      }
+    }
+
+    // 8. Seed Locations if empty
+    const locCountRes = await query('SELECT COUNT(*) FROM locations;');
+    const locCount = parseInt(locCountRes.rows[0].count, 10);
+
+    if (locCount === 0) {
+      console.log('🌱 Seeding initial waste locations into Neon DB...');
+      for (const loc of initialLocations) {
+        await query(
+          `INSERT INTO locations (id, name, area, category, address, contact, open_hours, accepted_waste, coordinates, notes, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+           ON CONFLICT (id) DO NOTHING;`,
+          [
+            loc.id,
+            loc.name,
+            loc.area,
+            loc.category,
+            loc.address,
+            loc.contact,
+            loc.openHours,
+            loc.acceptedWaste,
+            loc.coordinates,
+            loc.notes,
+          ]
         );
       }
     }
