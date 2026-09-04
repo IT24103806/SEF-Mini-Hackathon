@@ -44,7 +44,7 @@ function getWasteBadge(wasteType) {
   }
 }
 
-export default function CollectionSchedules() {
+export default function CollectionSchedules({ initialShowForm = false }) {
   // 1. Data state initialized lazily from localStorage / sample data
   const [schedules, setSchedules] = useState(() => loadCollectionSchedules())
 
@@ -55,7 +55,7 @@ export default function CollectionSchedules() {
   const [selectedDay, setSelectedDay] = useState('')
 
   // 3. Modal / Dialog states
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false)
+  const [isFormModalOpen, setIsFormModalOpen] = useState(initialShowForm)
   const [editingSchedule, setEditingSchedule] = useState(null)
   const [viewingSchedule, setViewingSchedule] = useState(null)
   const [deletingSchedule, setDeletingSchedule] = useState(null)

@@ -44,9 +44,12 @@ export default function App() {
       <Navbar currentPath={currentPath} onNavigate={navigate} />
 
       <main className="clk-main-content">
-        {currentPath === '/collection-schedules' ? (
+        {currentPath === '/collection-schedules' || currentPath === '/collection-schedules/add' ? (
           /* Module 2: Collection Schedules CRUD */
-          <CollectionSchedules />
+          <CollectionSchedules
+            key={currentPath}
+            initialShowForm={currentPath === '/collection-schedules/add'}
+          />
         ) : currentPath === '/waste-reports' ? (
           /* Module 1 Placeholder (for Member 1 branch merge) */
           <div className="cs-page-wrapper">

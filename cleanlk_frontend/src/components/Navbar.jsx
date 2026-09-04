@@ -73,7 +73,7 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
           <button
             type="button"
             className="clk-nav-cta-btn"
-            onClick={(e) => handleLinkClick(e, '/collection-schedules')}
+            onClick={(e) => handleLinkClick(e, '/collection-schedules/add')}
           >
             + Add Schedule
           </button>
@@ -113,7 +113,7 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
             type="button"
             className="clk-nav-cta-btn"
             style={{ marginTop: '0.5rem', width: '100%', textAlign: 'center' }}
-            onClick={(e) => handleLinkClick(e, '/collection-schedules')}
+            onClick={(e) => handleLinkClick(e, '/collection-schedules/add')}
           >
             + Add Schedule
           </button>
