@@ -1,5 +1,3 @@
-// Validation helpers for CleanLK forms
-
 export function validateWasteReport(values) {
   const errors = {};
 
@@ -7,11 +5,11 @@ export function validateWasteReport(values) {
     errors.fullName = "Please enter your name.";
   }
 
-  if (!values.area) {
+  if (!values.area || !values.area.trim()) {
     errors.area = "Please select an area.";
   }
 
-  if (!values.issueType) {
+  if (!values.issueType || !values.issueType.trim()) {
     errors.issueType = "Please select an issue type.";
   }
 
@@ -21,12 +19,16 @@ export function validateWasteReport(values) {
     errors.description = "Description must contain at least 10 characters.";
   }
 
-  if (!values.severity) {
+  if (!values.severity || !values.severity.trim()) {
     errors.severity = "Please select a severity level.";
   }
 
-  return errors;
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
 }
+
 
 export function validateCollectionSchedule(values) {
   const errors = {};

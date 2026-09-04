@@ -170,3 +170,57 @@ export const getReportStats = async (req, res, next) => {
     next(err);
   }
 };
+
+export const updateReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { fullName, area, issueType, description, severity } = req.body;
+
+
+    const result = await query(
+      `UPDATE reports
+       SET full_name = $1, area = $2, issue_type = $3, description = $4, severity = $5, updated_at = NOW()
+       WHERE id = $6
+       RETURNING *;`,
+      [fullName ? fullName.trim() : '', area, issueType, description ? description.trim() : '', severity, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Report with ID '${id}' not found.`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Report updated successfully!',
+      data: formatReport(result.rows[0]),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await query('DELETE FROM reports WHERE id = $1 RETURNING *;', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Report with ID '${id}' not found.`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Report deleted successfully!',
+      data: formatReport(result.rows[0]),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+

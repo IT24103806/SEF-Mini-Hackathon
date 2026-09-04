@@ -203,3 +203,93 @@ export const communityRequestsApi = {
     return result;
   },
 };
+
+/**
+ * Waste Reports API Service
+ */
+export const wasteReportsApi = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams();
+    if (params.area && params.area !== 'All') query.append('area', params.area);
+    if (params.status && params.status !== 'All') query.append('status', params.status);
+    if (params.severity && params.severity !== 'All') query.append('severity', params.severity);
+    if (params.search) query.append('search', params.search);
+
+    const url = `${API_BASE}/reports${query.toString() ? `?${query.toString()}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch waste reports');
+    }
+    return res.json();
+  },
+
+  async getById(id) {
+    const res = await fetch(`${API_BASE}/reports/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch report');
+    }
+    return res.json();
+  },
+
+  async getStats() {
+    const res = await fetch(`${API_BASE}/reports/stats`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch report stats');
+    }
+    return res.json();
+  },
+
+  async create(data) {
+    const res = await fetch(`${API_BASE}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to create report');
+    }
+    return result;
+  },
+
+  async update(id, data) {
+    const res = await fetch(`${API_BASE}/reports/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to update report');
+    }
+    return result;
+  },
+
+  async updateStatus(id, status) {
+    const res = await fetch(`${API_BASE}/reports/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to update report status');
+    }
+    return result;
+  },
+
+  async delete(id) {
+    const res = await fetch(`${API_BASE}/reports/${id}`, {
+      method: 'DELETE',
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(result.message || 'Failed to delete report');
+    }
+    return result;
+  },
+};
+
