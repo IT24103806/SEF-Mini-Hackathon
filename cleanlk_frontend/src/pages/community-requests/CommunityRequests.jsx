@@ -4,6 +4,7 @@ import { getStoredRequests, saveRequests } from "../../utils/storage";
 import { validateCommunityRequest } from "../../utils/validation";
 import CommunityRequestForm from "./CommunityRequestForm";
 import CommunityRequestDetails from "./CommunityRequestDetails";
+import CommunityRequestAnalytics from "./CommunityRequestAnalytics";
 import CollectionScheduleLookup from "../collection-schedules/CollectionScheduleLookup";
 
 export default function CommunityRequests() {
@@ -122,7 +123,7 @@ export default function CommunityRequests() {
       <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
         <h3 style={{ margin: 0, color: "#065f46", fontSize: "16px", fontWeight: "bold" }}>🇱🇰 Solving Sri Lanka's Municipal Waste Crisis</h3>
         <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#047857", lineHeight: "1.4" }}>
-          In many Sri Lankan councils, irregular garbage truck collection and severe public bin shortages lead to illegal roadside dumping. <strong>CleanLK Community Services (M4)</strong> bridges the citizen-authority gap by enabling direct requests for new bins, extra collections, and real-time municipal tracking.
+          In many Sri Lankan councils, irregular garbage collection and public bin shortages lead to illegal roadside dumping. <strong>CleanLK Community Services (M4)</strong> bridges the citizen-authority gap by enabling direct requests for new bins and real-time municipal tracking.
         </p>
       </div>
 
@@ -159,10 +160,13 @@ export default function CommunityRequests() {
         </div>
       </section>
 
+      {/* NEW ANALYTICS SUMMARY FEATURE */}
+      <CommunityRequestAnalytics requests={requests} />
+
       {/* SCHEDULE LOOKUP */}
       <CollectionScheduleLookup />
 
-      {/* MODULAR FORM COMPONENT */}
+      {/* FORM COMPONENT */}
       <CommunityRequestForm
         formData={formData}
         handleInputChange={handleInputChange}
@@ -276,7 +280,7 @@ export default function CommunityRequests() {
         </div>
       </section>
 
-      {/* MODULAR DETAILS MODAL */}
+      {/* DETAILS MODAL */}
       <CommunityRequestDetails
         request={selectedRequest}
         onClose={() => setSelectedRequest(null)}

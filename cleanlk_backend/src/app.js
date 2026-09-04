@@ -4,6 +4,7 @@ import reportRoutes from './routes/reportRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import communityRoutes from './routes/communityRoutes.js';
 
 const app = express();
 
@@ -30,6 +31,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/reports', reportRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/community-requests', communityRoutes);
+
+app.get('/', (req, res) => {
+  res.send('CleanLK Backend API is running!');
+});
 
 // 404 Handler
 app.use((req, res) => {
@@ -41,5 +47,7 @@ app.use((req, res) => {
 
 // Central Error Handler
 app.use(errorHandler);
+
+
 
 export default app;
