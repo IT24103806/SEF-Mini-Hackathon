@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 export default function CommunityRequestForm({
   formData,
@@ -9,6 +9,56 @@ export default function CommunityRequestForm({
   error,
   success
 }) {
+  const smartAnalysis = useMemo(() => {
+    const text = (formData.description || "").toLowerCase();
+
+    if (
+      text.includes("hospital") ||
+      text.includes("school") ||
+      text.includes("drain") ||
+      text.includes("severe") ||
+      text.includes("disease") ||
+      text.includes("overflowing") ||
+      text.includes("smell") ||
+      text.includes("danger")
+    ) {
+      return {
+        suggestedPriority: "High",
+        badgeColor: "#fee2e2",
+        textColor: "#991b1b",
+        borderColor: "#f87171",
+        reason: "🚨 Critical health hazard or sensitive public location (school/hospital) detected.",
+        sla: "Immediate Municipal Action Required (24 Hours)"
+      };
+    }
+
+    if (
+      text.includes("bin") ||
+      text.includes("market") ||
+      text.includes("weekly") ||
+      text.includes("extra") ||
+      text.includes("collection")
+    ) {
+      return {
+        suggestedPriority: "Medium",
+        badgeColor: "#fef3c7",
+        textColor: "#92400e",
+        borderColor: "#f6ad55",
+        reason: "⚠️ Standard community service or bin collection requirement.",
+        sla: "Scheduled Pickup within 48–72 Hours"
+      };
+    }
+
+    return {
+      suggestedPriority: "Low",
+      badgeColor: "#e0e7ff",
+      textColor: "#3730a3",
+      borderColor: "#818cf8",
+      reason: "ℹ️ General community cleanup drive or non-urgent inquiry.",
+      sla: "Routine Municipal Scheduling"
+    };
+  }, [formData.description]);
+
   return (
     <section style={{ background: "#ffffff", border: "1px solid #d1d5db", borderRadius: "8px", padding: "20px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
       <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#065f46", marginTop: 0 }}>
@@ -86,10 +136,27 @@ export default function CommunityRequestForm({
             rows="3"
             value={formData.description}
             onChange={handleInputChange}
-            placeholder="Detail your request (minimum 10 characters)..."
+            placeholder="Detail your request (e.g. Severe odor and overflowing bins near school premises)..."
             style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
           />
         </div>
+
+        {formData.description.trim().length >= 5 && (
+          <div style={{ background: "#f8fafc", border: `1px dashed ${smartAnalysis.borderColor}`, borderRadius: "6px", padding: "12px 14px", fontSize: "13px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: "600", color: "#334155" }}>🤖 Smart AI Urgency Analyzer:</span>
+              <span style={{ background: smartAnalysis.badgeColor, color: smartAnalysis.textColor, padding: "3px 10px", borderRadius: "4px", fontWeight: "bold", fontSize: "12px" }}>
+                {smartAnalysis.suggestedPriority} Urgency Detected
+              </span>
+            </div>
+            <p style={{ margin: "6px 0 2px 0", color: "#475569", fontSize: "12px" }}>
+              {smartAnalysis.reason}
+            </p>
+            <p style={{ margin: 0, color: "#059669", fontSize: "11px", fontWeight: "600" }}>
+              ⏱️ Expected SLA: {smartAnalysis.sla}
+            </p>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: "10px" }}>
           <button
