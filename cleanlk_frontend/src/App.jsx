@@ -106,34 +106,99 @@ export default function App() {
           </div>
         ) : (
           /* Default: CleanLK Home Overview Page */
-          <div className="clk-home-page">
-            {/* Hero Section */}
-            <section className="clk-home-hero">
-              <div className="cs-prototype-tag" style={{ marginBottom: '0.75rem' }}>
-                🇱🇰 Smart Community Waste Management Platform
+          <div className="cs-page-wrapper">
+            {/* Hero Section Matching Screenshot 1 */}
+            <section className="cs-hero-section">
+              <div className="cs-hero-content">
+                <div className="cs-hero-tag">
+                  <span className="cs-tag-leaf">🍃</span> Cleaner Communities. Better Sri Lanka.
+                </div>
+
+                <h1 className="cs-hero-heading">
+                  Keep Sri Lanka <br />
+                  Clean, <br />
+                  <span className="cs-hero-heading-highlight">One Report at a <br />Time.</span>
+                </h1>
+
+                <p className="cs-hero-subtext">
+                  CleanLK makes it easier for Sri Lankan communities to report waste
+                  problems, track local concerns and access useful waste-management information.
+                </p>
+
+                <div className="cs-hero-actions">
+                  <button
+                    type="button"
+                    className="cs-hero-btn-primary"
+                    onClick={() => navigate('/collection-schedules')}
+                  >
+                    Check Collection Schedules <span className="cs-btn-arrow">→</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="cs-hero-btn-secondary"
+                    onClick={() => navigate('/collection-schedules')}
+                  >
+                    View All Schedules
+                  </button>
+                </div>
+
+                <div className="cs-hero-caption">
+                  Simple • Community-driven • Built for Sri Lanka
+                </div>
               </div>
-              <h1>CleanLK — For a Cleaner Sri Lanka</h1>
-              <p className="clk-home-hero-sub">
-                Empowering Sri Lankan communities with scheduled waste pickups, issue reporting,
-                recycling points, and community clean-up requests.
-              </p>
-              <div className="clk-home-hero-actions">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => navigate('/collection-schedules')}
-                  icon="📅"
-                >
-                  Check Collection Schedules
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => navigate('/collection-schedules')}
-                  icon="🔍"
-                >
-                  Lookup Pickup by Area
-                </Button>
+
+              {/* Right Column: Hero Visual & Floating "Community Overview" Card (Screenshot 1) */}
+              <div className="cs-hero-visual-col">
+                <div className="cs-hero-banner-frame">
+                  <div className="cs-hero-backdrop-visual">
+                    <div className="cs-backdrop-overlay">
+                      <div className="cs-backdrop-badge">
+                        <span>🇱🇰</span> Smart Waste Platform
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="cs-floating-overview-card">
+                    <div className="cs-floating-card-header">
+                      <span className="cs-floating-card-title">Community Overview</span>
+                      <div className="cs-floating-leaf-badge">
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="#166534"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="cs-floating-metrics-row">
+                      <div className="cs-floating-metric">
+                        <div className="cs-metric-value">{scheduleCount}</div>
+                        <div className="cs-metric-label">Schedules Active</div>
+                        <div className="cs-metric-bar cs-metric-bar--green"></div>
+                      </div>
+
+                      <div className="cs-floating-metric">
+                        <div className="cs-metric-value">42</div>
+                        <div className="cs-metric-label">In Progress</div>
+                        <div className="cs-metric-bar cs-metric-bar--amber"></div>
+                      </div>
+
+                      <div className="cs-floating-metric">
+                        <div className="cs-metric-value">86</div>
+                        <div className="cs-metric-label">Resolved</div>
+                        <div className="cs-metric-bar cs-metric-bar--emerald"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 

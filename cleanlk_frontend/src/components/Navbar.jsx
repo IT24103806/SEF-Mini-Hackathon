@@ -1,5 +1,6 @@
 /**
  * CleanLK — Responsive Navigation Bar Component
+ * Styled to visually match Member 1's reference design.
  */
 
 import { useState } from 'react'
@@ -10,7 +11,7 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
   const navItems = [
     { label: 'Home', path: '/' },
     { label: 'Waste Reports', path: '/waste-reports' },
-    { label: 'Collection Schedules', path: '/collection-schedules' },
+    { label: 'Collection Schedule', path: '/collection-schedules' },
     { label: 'Waste Locations', path: '/waste-locations' },
     { label: 'Community Requests', path: '/community-requests' },
   ]
@@ -26,20 +27,30 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
   return (
     <header className="clk-navbar">
       <div className="clk-navbar-container">
-        {/* Brand */}
+        {/* Brand with green leaf icon badge */}
         <a
           href="/"
           className="clk-navbar-brand"
           onClick={(e) => handleLinkClick(e, '/')}
         >
-          <span className="clk-brand-icon">🌱</span>
-          <span className="clk-brand-name">
-            Clean<span className="clk-brand-highlight">LK</span>
-          </span>
-          <span className="clk-brand-badge">Sri Lanka</span>
+          <div className="clk-brand-icon-box">
+            <svg
+              className="clk-leaf-svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+            </svg>
+          </div>
+          <span className="clk-brand-name">CleanLK</span>
         </a>
 
-        {/* Desktop Nav Links */}
+        {/* Center Nav Links */}
         <nav className="clk-navbar-nav" aria-label="Main Navigation">
           {navItems.map((item) => {
             const isActive = currentPath === item.path
@@ -57,7 +68,18 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
           })}
         </nav>
 
-        {/* Mobile Toggle Button */}
+        {/* Right Action Button */}
+        <div className="clk-navbar-actions">
+          <button
+            type="button"
+            className="clk-nav-cta-btn"
+            onClick={(e) => handleLinkClick(e, '/collection-schedules')}
+          >
+            + Add Schedule
+          </button>
+        </div>
+
+        {/* Mobile Hamburger Toggle */}
         <button
           type="button"
           className="clk-mobile-toggle"
@@ -71,7 +93,7 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
         </button>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
         <div className="clk-mobile-nav">
           {navItems.map((item) => {
@@ -87,6 +109,14 @@ export default function Navbar({ currentPath = '/collection-schedules', onNaviga
               </a>
             )
           })}
+          <button
+            type="button"
+            className="clk-nav-cta-btn"
+            style={{ marginTop: '0.5rem', width: '100%', textAlign: 'center' }}
+            onClick={(e) => handleLinkClick(e, '/collection-schedules')}
+          >
+            + Add Schedule
+          </button>
         </div>
       )}
     </header>

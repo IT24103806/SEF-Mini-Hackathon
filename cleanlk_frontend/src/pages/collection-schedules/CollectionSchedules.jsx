@@ -1,7 +1,7 @@
 /**
  * CleanLK — Collection Schedules Module (M2)
- * Complete functional CRUD with Public Lookup, Search, Multi-Filter,
- * Form Validation, Confirmation Modal, Details View, and LocalStorage Persistence.
+ * Redesigned to visually match Member 1's CleanLK Hero & UI theme (Screenshot 1).
+ * Preserves 100% of all CRUD, search, filter, validation, and storage functionality.
  */
 
 import { useState, useEffect, useMemo } from 'react'
@@ -82,7 +82,7 @@ export default function CollectionSchedules() {
     saveCollectionSchedules(newList)
   }
 
-  // Derive all unique area options (combining sample areas + any new user-entered areas)
+  // Derive all unique area options (combining sample areas + user-entered areas)
   const availableAreas = useMemo(() => {
     const areaSet = new Set(SAMPLE_AREAS)
     schedules.forEach((item) => {
@@ -139,6 +139,14 @@ export default function CollectionSchedules() {
     setSelectedDay('')
   }
 
+  // Metrics for the floating overview card
+  const stats = useMemo(() => {
+    const total = schedules.length
+    const uniqueAreas = new Set(schedules.map((s) => s.area.trim().toLowerCase())).size
+    const uniqueTypes = new Set(schedules.map((s) => s.wasteType)).size
+    return { total, uniqueAreas, uniqueTypes }
+  }, [schedules])
+
   // =========================================================================
   // CRUD Actions
   // =========================================================================
@@ -167,7 +175,10 @@ export default function CollectionSchedules() {
       showToast(`Collection schedule for ${formData.area} updated successfully!`, 'success')
     } else {
       // Create new record with unique ID
-      const newId = schedules.length > 0 ? Math.max(...schedules.map((s) => Number(s.id) || 0)) + 1 : 1
+      const newId =
+        schedules.length > 0
+          ? Math.max(...schedules.map((s) => Number(s.id) || 0)) + 1
+          : 1
       const newRecord = {
         ...formData,
         id: newId,
@@ -226,37 +237,133 @@ export default function CollectionSchedules() {
         </div>
       )}
 
-      {/* Public Schedule Lookup Hero Banner */}
-      <section className="cs-hero" aria-labelledby="cs-main-heading">
-        <div className="cs-hero-top">
-          <div className="cs-hero-titles">
-            <div className="cs-prototype-tag">
-              <span>🇱🇰</span> Prototype Sample Data
-            </div>
-            <h1 id="cs-main-heading">Check Waste Collection Schedule</h1>
-            <p className="cs-hero-subtitle">
-              Find out when waste is collected in your area or schedule new community pickups.
-            </p>
+      {/* =========================================================================
+          Hero Section (Matching Member 1's Screenshot 1 Visual Design)
+          ========================================================================= */}
+      <section className="cs-hero-section">
+        {/* Left Column: Badge, Large Headline, Paragraph, CTAs, Caption */}
+        <div className="cs-hero-content">
+          <div className="cs-hero-tag">
+            <span className="cs-tag-leaf">🍃</span> Cleaner Communities. Better Sri Lanka.
           </div>
 
+          <h1 className="cs-hero-heading">
+            Never Miss a <br />
+            Collection, <br />
+            <span className="cs-hero-heading-highlight">Keep Sri Lanka Clean.</span>
+          </h1>
+
+          <p className="cs-hero-subtext">
+            CleanLK makes it easier for Sri Lankan communities to check pickup days,
+            lookup waste collection timings, and access timely municipal schedule information.
+          </p>
+
           <div className="cs-hero-actions">
-            <Button
-              variant="primary"
-              size="lg"
+            <button
+              type="button"
+              className="cs-hero-btn-primary"
               onClick={handleOpenCreate}
-              icon="➕"
             >
-              Add Collection Schedule
-            </Button>
+              Add Collection Schedule <span className="cs-btn-arrow">→</span>
+            </button>
+            <a
+              href="#schedules-directory"
+              className="cs-hero-btn-secondary"
+              onClick={(e) => {
+                e.preventDefault()
+                const el = document.getElementById('schedules-directory')
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              View Schedules
+            </a>
+          </div>
+
+          <div className="cs-hero-caption">
+            Simple • Community-driven • Built for Sri Lanka
+          </div>
+        </div>
+
+        {/* Right Column: Hero Visual Frame & Floating "Community Overview" Card */}
+        <div className="cs-hero-visual-col">
+          <div className="cs-hero-banner-frame">
+            {/* Visual clean-up scenery representation with natural greens */}
+            <div className="cs-hero-backdrop-visual">
+              <div className="cs-backdrop-overlay">
+                <div className="cs-backdrop-badge">
+                  <span>🇱🇰</span> Community Waste Timetable
+                </div>
+              </div>
+            </div>
+
+            {/* Floating Card: Identical to Screenshot 1's "Community Overview" Card */}
+            <div className="cs-floating-overview-card">
+              <div className="cs-floating-card-header">
+                <span className="cs-floating-card-title">Community Overview</span>
+                <div className="cs-floating-leaf-badge">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    stroke="#166534"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="cs-floating-metrics-row">
+                <div className="cs-floating-metric">
+                  <div className="cs-metric-value">{stats.total}</div>
+                  <div className="cs-metric-label">Schedules Active</div>
+                  <div className="cs-metric-bar cs-metric-bar--green"></div>
+                </div>
+
+                <div className="cs-floating-metric">
+                  <div className="cs-metric-value">{stats.uniqueAreas}</div>
+                  <div className="cs-metric-label">Municipal Areas</div>
+                  <div className="cs-metric-bar cs-metric-bar--amber"></div>
+                </div>
+
+                <div className="cs-floating-metric">
+                  <div className="cs-metric-value">{stats.uniqueTypes}</div>
+                  <div className="cs-metric-label">Waste Categories</div>
+                  <div className="cs-metric-bar cs-metric-bar--emerald"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Search & Multi-Filter Controls */}
-      <div className="cs-controls-card">
+      {/* =========================================================================
+          Search & Multi-Filter Controls Section
+          ========================================================================= */}
+      <section id="schedules-directory" className="cs-controls-card">
+        <div className="cs-controls-header">
+          <div>
+            <h2 className="cs-controls-title">Check Waste Collection Schedule</h2>
+            <p className="cs-controls-subtitle">
+              Select your municipality or search to find out when trucks collect in your neighborhood.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="cs-add-schedule-btn"
+            onClick={handleOpenCreate}
+          >
+            + Add New Schedule
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="cs-search-row">
-          <div className="cs-search-input-wrapper">
+          <div className="cs-search-wrapper">
             <span className="cs-search-icon" aria-hidden="true">
               🔍
             </span>
@@ -346,7 +453,7 @@ export default function CollectionSchedules() {
             </Button>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Results Status Bar */}
       <div className="cs-status-bar">
@@ -358,22 +465,20 @@ export default function CollectionSchedules() {
         {hasActiveFilters && (
           <div className="cs-active-filter-pills">
             {searchQuery.trim() && (
-              <span className="cs-pill">
-                Keyword: &ldquo;{searchQuery.trim()}&rdquo;
-              </span>
+              <span className="cs-pill">Keyword: &ldquo;{searchQuery.trim()}&rdquo;</span>
             )}
             {selectedArea && <span className="cs-pill">Area: {selectedArea}</span>}
-            {selectedWasteType && (
-              <span className="cs-pill">Type: {selectedWasteType}</span>
-            )}
+            {selectedWasteType && <span className="cs-pill">Type: {selectedWasteType}</span>}
             {selectedDay && <span className="cs-pill">Day: {selectedDay}</span>}
           </div>
         )}
       </div>
 
-      {/* Schedule Listing / Empty States */}
+      {/* =========================================================================
+          Schedule Cards Grid / Empty States
+          ========================================================================= */}
       {schedules.length === 0 ? (
-        /* Empty State: No schedules at all in database */
+        /* Empty State: No schedules in database */
         <div className="cs-empty-state">
           <div className="cs-empty-icon">📅</div>
           <h3 className="cs-empty-title">No collection schedules found.</h3>
@@ -382,13 +487,13 @@ export default function CollectionSchedules() {
             new schedule or restore the default Sri Lankan prototype data.
           </p>
           <div className="cs-empty-actions">
-            <Button
-              variant="primary"
+            <button
+              type="button"
+              className="cs-hero-btn-primary"
               onClick={handleOpenCreate}
-              icon="➕"
             >
-              Add Collection Schedule
-            </Button>
+              + Add Collection Schedule
+            </button>
             <Button
               variant="outline"
               onClick={handleRestoreSampleData}
@@ -399,13 +504,13 @@ export default function CollectionSchedules() {
           </div>
         </div>
       ) : filteredSchedules.length === 0 ? (
-        /* Empty State: No search / filter results matching query */
+        /* Empty State: No search / filter results */
         <div className="cs-empty-state">
           <div className="cs-empty-icon">🔍</div>
           <h3 className="cs-empty-title">No collection schedules match your search.</h3>
           <p className="cs-empty-desc">
-            We couldn&apos;t find any schedules matching your criteria. Try adjusting your search term
-            or resetting the active filters.
+            We couldn&apos;t find any schedules matching your criteria. Try adjusting your search query
+            or clearing the active filters.
           </p>
           <div className="cs-empty-actions">
             <Button
@@ -425,14 +530,14 @@ export default function CollectionSchedules() {
           </div>
         </div>
       ) : (
-        /* Schedule Cards Grid */
+        /* Clean Schedule Cards Grid */
         <div className="cs-grid">
           {filteredSchedules.map((schedule) => {
             const badge = getWasteBadge(schedule.wasteType)
 
             return (
               <article key={schedule.id} className="cs-card">
-                {/* Header */}
+                {/* Card Header */}
                 <div className="cs-card-header">
                   <div className="cs-card-area-group">
                     <span className="cs-card-pin" aria-hidden="true">
@@ -446,7 +551,7 @@ export default function CollectionSchedules() {
                   </span>
                 </div>
 
-                {/* Body */}
+                {/* Card Body */}
                 <div className="cs-card-body">
                   <div className="cs-card-timing-box">
                     <div className="cs-card-timing-col">
@@ -473,7 +578,7 @@ export default function CollectionSchedules() {
                   )}
                 </div>
 
-                {/* Actions */}
+                {/* Card Actions */}
                 <div className="cs-card-footer">
                   <Button
                     variant="ghost"
@@ -506,7 +611,9 @@ export default function CollectionSchedules() {
         </div>
       )}
 
-      {/* Create / Edit Schedule Modal */}
+      {/* =========================================================================
+          Create / Edit Schedule Modal Dialog
+          ========================================================================= */}
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => {
@@ -527,7 +634,9 @@ export default function CollectionSchedules() {
         />
       </Modal>
 
-      {/* View Schedule Details Modal */}
+      {/* =========================================================================
+          View Schedule Details Modal Dialog
+          ========================================================================= */}
       <Modal
         isOpen={Boolean(viewingSchedule)}
         onClose={() => setViewingSchedule(null)}
@@ -542,7 +651,9 @@ export default function CollectionSchedules() {
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* =========================================================================
+          Delete Confirmation Modal Dialog
+          ========================================================================= */}
       <Modal
         isOpen={Boolean(deletingSchedule)}
         onClose={() => setDeletingSchedule(null)}
