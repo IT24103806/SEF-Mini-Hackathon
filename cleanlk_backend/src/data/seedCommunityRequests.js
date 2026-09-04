@@ -1,0 +1,32 @@
+export const initialCommunityRequests = [
+  {
+    id: 'CR-1001',
+    name: 'Kasun Perera',
+    area: 'Kegalle',
+    requestType: 'New Waste Bin',
+    priority: 'High',
+    status: 'Pending',
+    description: 'Requesting a public bin near the central bus stand.',
+    createdAt: '2026-09-01T09:00:00.000Z',
+  },
+  {
+    id: 'CR-1002',
+    name: 'Nimali Silva',
+    area: 'Colombo',
+    requestType: 'Extra Collection',
+    priority: 'Medium',
+    status: 'Approved',
+    description: 'Need an additional recycling pickup on weekend.',
+    createdAt: '2026-09-02T11:30:00.000Z',
+  },
+  {
+    id: 'CR-1003',
+    name: 'Sunil Shantha',
+    area: 'Galle',
+    requestType: 'Cleanup Request',
+    priority: 'Low',
+    status: 'Completed',
+    description: 'Beach side cleanup drive support needed.',
+    createdAt: '2026-09-03T15:00:00.000Z',
+  },
+];
