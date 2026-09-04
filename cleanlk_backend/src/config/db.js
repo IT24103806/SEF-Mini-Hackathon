@@ -1,13 +1,22 @@
-import pg from 'pg';
+import { neon } from '@neondatabase/serverless';
 import { config } from './index.js';
 
-const { Pool } = pg;
+const sql = config.databaseUrl ? neon(config.databaseUrl) : null;
 
-export const pool = new Pool({
-  connectionString: config.databaseUrl,
-  ssl: {
-    rejectUnauthorized: false, // Required for Neon cloud SSL connection
-  },
-});
+/**
+ * Execute parameterized SQL query over Neon serverless HTTP driver
+ */
+export const query = async (text, params = []) => {
+  if (!sql) {
+    throw new Error('Database connection string is missing.');
+  }
 
-export const query = (text, params) => pool.query(text, params);
+  // Neon serverless conventional query with $1, $2 params
+  if (params && params.length > 0) {
+    const rows = await sql.query(text, params);
+    return { rows };
+  } else {
+    const rows = await sql.query(text);
+    return { rows };
+  }
+};

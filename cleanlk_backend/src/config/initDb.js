@@ -1,6 +1,7 @@
 import { query } from './db.js';
 import { initialReports } from '../data/seedReports.js';
 import { initialSchedules } from '../data/seedSchedules.js';
+import { initialCommunityRequests } from '../data/seedCommunityRequests.js';
 
 export const initDb = async () => {
   try {
@@ -35,7 +36,22 @@ export const initDb = async () => {
       );
     `);
 
-    // 3. Seed Reports if empty
+    // 3. Create Community Requests Table
+    await query(`
+      CREATE TABLE IF NOT EXISTS community_requests (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        area VARCHAR(100) NOT NULL,
+        request_type VARCHAR(100) NOT NULL,
+        priority VARCHAR(50) NOT NULL DEFAULT 'Medium',
+        status VARCHAR(50) NOT NULL DEFAULT 'Pending',
+        description TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ
+      );
+    `);
+
+    // 4. Seed Reports if empty
     const reportCountRes = await query('SELECT COUNT(*) FROM reports;');
     const reportCount = parseInt(reportCountRes.rows[0].count, 10);
 
@@ -51,7 +67,7 @@ export const initDb = async () => {
       }
     }
 
-    // 4. Seed Schedules if empty
+    // 5. Seed Schedules if empty
     const scheduleCountRes = await query('SELECT COUNT(*) FROM schedules;');
     const scheduleCount = parseInt(scheduleCountRes.rows[0].count, 10);
 
@@ -63,6 +79,22 @@ export const initDb = async () => {
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (id) DO NOTHING;`,
           [s.id, s.area, s.wasteType, s.day, s.time, s.location, s.frequency, s.nextCollection]
+        );
+      }
+    }
+
+    // 6. Seed Community Requests if empty
+    const crCountRes = await query('SELECT COUNT(*) FROM community_requests;');
+    const crCount = parseInt(crCountRes.rows[0].count, 10);
+
+    if (crCount === 0) {
+      console.log('🌱 Seeding initial community requests into Neon DB...');
+      for (const cr of initialCommunityRequests) {
+        await query(
+          `INSERT INTO community_requests (id, name, area, request_type, priority, status, description, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (id) DO NOTHING;`,
+          [cr.id, cr.name, cr.area, cr.requestType, cr.priority, cr.status, cr.description, cr.createdAt]
         );
       }
     }
