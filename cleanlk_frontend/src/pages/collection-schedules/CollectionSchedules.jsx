@@ -372,11 +372,7 @@ export default function CollectionSchedules() {
       </div>
 
       {/* Schedule Listing / Empty States */}
-      {isLoading ? (
-        <div className="cs-empty-state">
-          <p>Loading collection schedules...</p>
-        </div>
-      ) : schedules.length === 0 ? (
+      {schedules.length === 0 ? (
         /* Empty State: No schedules at all in database */
         <div className="cs-empty-state">
           <div className="cs-empty-icon">📅</div>
