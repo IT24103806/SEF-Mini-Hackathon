@@ -16,8 +16,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Waste report images are stored as data URLs; keep a strict upper request limit.
+app.use(express.json({ limit: '4mb' }));
+app.use(express.urlencoded({ extended: true, limit: '4mb' }));
 
 // Health Check
 app.get('/api/health', (req, res) => {

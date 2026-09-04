@@ -77,6 +77,13 @@ export default function WasteReportDetails() {
       </h1>
 
       <section className="mt-7 rounded-card border border-line bg-white shadow-card">
+        {report.imageData && (
+          <img
+            src={report.imageData}
+            alt={`${report.issueType} in ${report.area}`}
+            className="h-72 w-full rounded-t-card object-cover sm:h-96"
+          />
+        )}
         <div className="flex flex-col gap-4 border-b border-line p-6 sm:flex-row sm:items-start sm:justify-between sm:p-7">
           <div>
             <h2 className="text-xl font-bold text-ink sm:text-2xl">

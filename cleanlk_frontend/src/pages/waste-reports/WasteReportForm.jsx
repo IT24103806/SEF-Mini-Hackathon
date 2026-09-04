@@ -18,6 +18,7 @@ const emptyForm = {
   severity: "",
   status: "Reported",
   date: new Date().toISOString().slice(0, 10),
+  imageData: "",
 };
 
 const fieldBase =
@@ -88,6 +89,37 @@ export default function WasteReportForm() {
   function handleChange(e) {
     const { name, value } = e.target;
     setField(name, value);
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrors((current) => ({
+        ...current,
+        imageData: 'Please upload a JPG, PNG, or WebP image.',
+      }));
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors((current) => ({
+        ...current,
+        imageData: 'Image must be 2 MB or smaller.',
+      }));
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setField('imageData', reader.result);
+    reader.onerror = () =>
+      setErrors((current) => ({
+        ...current,
+        imageData: 'The image could not be read. Please try another file.',
+      }));
+    reader.readAsDataURL(file);
   }
 
   async function saveReport(submitAnyway = false) {
@@ -241,6 +273,7 @@ export default function WasteReportForm() {
               type="text"
               value={formData.fullName}
               onChange={handleChange}
+              maxLength={80}
               placeholder="e.g. Nimal Perera"
               aria-invalid={Boolean(errors.fullName)}
               className={fieldClass(Boolean(errors.fullName))}
@@ -301,6 +334,7 @@ export default function WasteReportForm() {
               rows={5}
               value={formData.description}
               onChange={handleChange}
+              maxLength={500}
               placeholder="Describe the waste problem and where it is located..."
               aria-invalid={Boolean(errors.description)}
               className={`${fieldClass(Boolean(errors.description))} resize-y leading-relaxed`}
@@ -346,15 +380,54 @@ export default function WasteReportForm() {
             </Field>
           )}
 
-          <Field label="Date" htmlFor="date" required={false}>
+          <Field
+            label="Date"
+            htmlFor="date"
+            required={false}
+            error={errors.date}
+          >
             <input
               id="date"
               name="date"
               type="date"
               value={formData.date}
               onChange={handleChange}
-              className={fieldClass(false)}
+              max={new Date().toISOString().slice(0, 10)}
+              aria-invalid={Boolean(errors.date)}
+              className={fieldClass(Boolean(errors.date))}
             />
+          </Field>
+
+          <Field
+            label="Issue Photo"
+            htmlFor="imageData"
+            required={false}
+            error={errors.imageData}
+            hint="JPG, PNG or WebP — maximum 2 MB"
+          >
+            <input
+              id="imageData"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+              className={`${fieldClass(Boolean(errors.imageData))} file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700`}
+            />
+            {formData.imageData && (
+              <div className="mt-4 overflow-hidden rounded-xl border border-line bg-canvas p-3">
+                <img
+                  src={formData.imageData}
+                  alt="Selected waste issue preview"
+                  className="h-52 w-full rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setField('imageData', '')}
+                  className="mt-3 text-sm font-semibold text-clay-600"
+                >
+                  Remove image
+                </button>
+              </div>
+            )}
           </Field>
         </div>
 

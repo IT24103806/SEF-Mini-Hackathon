@@ -17,6 +17,7 @@ function toApiReport(report) {
     severity: report.severity,
     status: report.status,
     date: report.date,
+    imageData: report.imageData || "",
   };
 }
 

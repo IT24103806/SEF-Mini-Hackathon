@@ -11,6 +11,8 @@ const allowedAreas = ['Colombo', 'Kandy', 'Kegalle', 'Gampaha', 'Galle', 'Kurune
 const allowedIssueTypes = ['Uncollected Garbage', 'Overflowing Bin', 'Illegal Dumping', 'Other'];
 const allowedSeverity = ['Low', 'Medium', 'High'];
 const allowedStatus = ['Reported', 'In Progress', 'Resolved'];
+const imageDataPattern = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const maxImageDataLength = 2_800_000;
 
 const readReports = () => JSON.parse(fs.readFileSync(dataFile, 'utf8'));
 const writeReports = (reports) =>
@@ -39,15 +41,36 @@ const enrichReport = (report, reports) => ({
 
 function validate(body) {
   const errors = {};
-  if (!body.name?.trim()) errors.name = 'Please enter your name.';
+  const name = body.name?.trim() || '';
+  const description = body.description?.trim() || '';
+  if (!name) errors.name = 'Please enter your name.';
+  else if (name.length < 2) errors.name = 'Name must contain at least 2 characters.';
+  else if (name.length > 80) errors.name = 'Name must contain 80 characters or fewer.';
   if (!allowedAreas.includes(body.area)) errors.area = 'Please select a valid area.';
   if (!allowedIssueTypes.includes(body.issueType)) errors.issueType = 'Please select a valid issue type.';
-  if (!body.description || body.description.trim().length < 10) {
+  if (!description || description.length < 10) {
     errors.description = 'Description must contain at least 10 characters.';
+  } else if (description.length > 500) {
+    errors.description = 'Description must contain 500 characters or fewer.';
   }
   if (!allowedSeverity.includes(body.severity)) errors.severity = 'Please select a valid severity.';
   if (body.status !== undefined && !allowedStatus.includes(body.status)) {
     errors.status = 'Please select a valid status.';
+  }
+  if (body.date) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+      errors.date = 'Please select a valid date.';
+    } else if (body.date > today) {
+      errors.date = 'Report date cannot be in the future.';
+    }
+  }
+  if (body.imageData) {
+    if (!imageDataPattern.test(body.imageData)) {
+      errors.imageData = 'Please upload a JPG, PNG, or WebP image.';
+    } else if (body.imageData.length > maxImageDataLength) {
+      errors.imageData = 'Image must be 2 MB or smaller.';
+    }
   }
   return errors;
 }
@@ -118,6 +141,7 @@ router.post('/', (req, res) => {
     severity: req.body.severity,
     status: req.body.status || 'Reported',
     date: req.body.date || new Date().toISOString().split('T')[0],
+    imageData: req.body.imageData || '',
   };
   reports.unshift(report);
   writeReports(reports);

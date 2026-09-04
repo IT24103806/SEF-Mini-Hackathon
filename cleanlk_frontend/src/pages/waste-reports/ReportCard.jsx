@@ -12,6 +12,14 @@ import { formatReportDate } from "../../utils/format";
 export default function ReportCard({ report, onDelete }) {
   return (
     <article className="group flex h-full flex-col rounded-card border border-line bg-white p-5 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift sm:p-6">
+      {report.imageData && (
+        <img
+          src={report.imageData}
+          alt={`${report.issueType} in ${report.area}`}
+          className="mb-5 h-44 w-full rounded-xl object-cover"
+          loading="lazy"
+        />
+      )}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="text-[17px] font-bold leading-snug text-ink">
